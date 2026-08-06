@@ -1,42 +1,69 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * SchoolSafe – Paleta oficial profissional e cores do tema.
+ * Cores de referência:
+ *  Azul Escuro (navy):      #0F172A
+ *  Azul Técnico (blue):     #2563EB
+ *  Verde Operacional:       #16A34A
+ *  Laranja (atenção):       #F59E0B
+ *  Vermelho (emergência):   #DC2626
+ *  Fundo cinza claro:       #F8FAFC
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
-
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: '#0F172A',
+    background: '#F8FAFC',
+    tint: '#2563EB',
+    icon: '#64748B',
+    tabIconDefault: '#64748B',
+    tabIconSelected: '#2563EB',
   },
   dark: {
     text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    background: '#0F172A',
+    tint: '#2563EB',
+    icon: '#94A3B8',
+    tabIconDefault: '#94A3B8',
+    tabIconSelected: '#2563EB',
   },
+};
+
+/** Paleta oficial SchoolSafe – modo claro */
+export const SchoolColors = {
+  navy: '#0F172A',
+  white: '#FFFFFF',
+  green: '#16A34A',
+  red: '#DC2626',
+  blue: '#2563EB',
+  orange: '#F59E0B',
+  gray: '#E5E7EB',
+  background: '#F8FAFC',
+  textMuted: '#64748B',
+  cardBorder: '#E2E8F0',
+};
+
+/** Paleta oficial SchoolSafe – modo noturno */
+export const SchoolDarkColors = {
+  navy: '#ECEDEE',
+  white: '#0B1220',
+  green: '#22C55E',
+  red: '#F87171',
+  blue: '#60A5FA',
+  orange: '#FBBF24',
+  gray: '#334155',
+  background: '#0F172A',
+  textMuted: '#94A3B8',
+  cardBorder: '#1E293B',
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+    sans: 'System',
+    serif: 'Georgia',
+    rounded: 'System',
+    mono: 'Menlo',
   },
   default: {
     sans: 'normal',
@@ -45,9 +72,9 @@ export const Fonts = Platform.select({
     mono: 'monospace',
   },
   web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
+    sans: "'Inter', 'Poppins', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
+    rounded: "'Poppins', 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, sans-serif",
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });
