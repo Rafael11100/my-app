@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Reanimated, {
@@ -16,8 +16,6 @@ import { createScreenStyles } from '@/components/schoolsafe/screen-styles';
 import { useAlerts } from '@/context/alerts-context';
 import { useSchoolColors } from '@/hooks/use-school-colors';
 
-type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
-
 const BLINK_DURATION_SMOKE = 10000; // 10s
 const BLINK_DURATION_MOTION = 2000; // 2s
 
@@ -25,7 +23,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const colors = useSchoolColors();
   const styles = createStyles(colors);
-  const { smoke, motion, history } = useAlerts();
+  const { smoke, motion } = useAlerts();
 
   const glow = useRef(new Animated.Value(0)).current;
   const blinkEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -91,25 +89,6 @@ export default function HomeScreen() {
   // O piscar acontece apenas sobreposto quando há alerta.
   const alertColor = colors.white;
 
-  // Dados do alerta ativo
-  const activeKind = smokeActive ? 'smoke' : motionActive ? 'motion' : null;
-  const activeIcon: IoniconName = smokeActive ? 'flame' : motionActive ? 'walk' : 'shield';
-  const activeLabel = smokeActive
-    ? 'Detector de Fumaça'
-    : motionActive
-      ? 'Detector de Presença'
-      : '';
-  const activeLocation = smokeActive ? 'Banheiro' : motionActive ? 'Corredor Principal' : '';
-  const activeColor = smokeActive ? colors.red : motionActive ? colors.blue : colors.gray;
-  const activeStartedAt = smokeActive ? smoke.startedAt : motionActive ? motion.startedAt : null;
-
-  // Última captura registrada (mais recente) para o card de "fim da captura"
-  const lastRecord = history.length > 0 ? history[0] : null;
-  const lastIsSmoke = lastRecord?.kind === 'smoke';
-
-  // Alerta finalizado (terminei a captura) para mostrar horário de fim
-  const showEnded = smoke.endedAt || motion.endedAt;
-
   // ==== Animação parallax de Header/Footer ao rolar ====
   const scrollY = useSharedValue(0);
   const onScroll = useAnimatedScrollHandler((e) => {
@@ -150,9 +129,7 @@ export default function HomeScreen() {
             <Text style={styles.sectionSubtitle}>
               {hasActive
                 ? '⚠️ Alerta em andamento!'
-                : showEnded
-                  ? 'Última captura registrada'
-                  : 'Selecione um detector para abrir o monitoramento'}
+                : 'Selecione um detector para abrir o monitoramento'}
             </Text>
           </View>
 
@@ -163,52 +140,6 @@ export default function HomeScreen() {
             <Ionicons name="document-text" size={16} color={colors.navy} />
             <Text style={styles.registroBtnText}>Registro</Text>
           </TouchableOpacity>
-
-          {hasActive && activeStartedAt ? (
-            <View style={[styles.alertCard, { borderColor: activeColor }]}>
-              <View style={[styles.alertHeader, { backgroundColor: activeColor }]}>
-                <Ionicons name={activeIcon} size={22} color={colors.white} />
-                <Text style={styles.alertTitle}>{activeLabel}</Text>
-              </View>
-              <View style={styles.alertBody}>
-                <View style={styles.alertRow}>
-                  <Ionicons name="location" size={18} color={activeColor} />
-                  <Text style={styles.alertLabel}>Localização</Text>
-                  <Text style={[styles.alertValue, { color: activeColor }]}>
-                    {activeLocation}
-                  </Text>
-                </View>
-                <View style={styles.alertRow}>
-                  <Ionicons name="time" size={18} color={activeColor} />
-                  <Text style={styles.alertLabel}>Início da captura</Text>
-                  <Text style={styles.alertValue}>{activeStartedAt}</Text>
-                </View>
-              </View>
-            </View>
-          ) : showEnded && lastRecord ? (
-            <View style={[styles.alertCard, { borderColor: colors.textMuted }]}>
-              <View style={[styles.alertHeader, { backgroundColor: colors.textMuted }]}>
-                <Ionicons name={lastIsSmoke ? 'flame' : 'walk'} size={22} color={colors.white} />
-                <Text style={styles.alertTitle}>
-                  {lastIsSmoke ? 'Detector de Fumaça' : 'Detector de Presença'} — Fim da captura
-                </Text>
-              </View>
-              <View style={styles.alertBody}>
-                <View style={styles.alertRow}>
-                  <Ionicons name="location" size={18} color={colors.textMuted} />
-                  <Text style={styles.alertLabel}>Localização</Text>
-                  <Text style={styles.alertValue}>
-                    {lastIsSmoke ? 'Banheiro' : 'Corredor Principal'}
-                  </Text>
-                </View>
-                <View style={styles.alertRow}>
-                  <Ionicons name="flag" size={18} color={colors.textMuted} />
-                  <Text style={styles.alertLabel}>Horário de fim</Text>
-                  <Text style={styles.alertValue}>{smoke.endedAt || motion.endedAt}</Text>
-                </View>
-              </View>
-            </View>
-          ) : null}
 
           <View style={styles.row}>
             <TouchableOpacity
@@ -257,51 +188,6 @@ function createStyles(colors: ReturnType<typeof useSchoolColors>) {
   const shared = createScreenStyles(colors);
   return StyleSheet.create({
     ...shared,
-    alertCard: {
-      width: '100%',
-      borderRadius: 20,
-      borderWidth: 2,
-      overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.15,
-      shadowRadius: 16,
-      elevation: 6,
-    },
-    alertHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      paddingVertical: 12,
-    },
-    alertTitle: {
-      color: colors.white,
-      fontSize: 16,
-      fontWeight: '800',
-    },
-    alertBody: {
-      backgroundColor: colors.white,
-      padding: 16,
-      gap: 10,
-    },
-    alertRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    alertLabel: {
-      flex: 1,
-      fontSize: 13,
-      color: colors.textMuted,
-      fontWeight: '600',
-    },
-    alertValue: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: colors.navy,
-      fontVariant: ['tabular-nums'],
-    },
     row: {
       width: '100%',
       flexDirection: 'row',
@@ -375,3 +261,4 @@ function createStyles(colors: ReturnType<typeof useSchoolColors>) {
     },
   });
 }
+

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 import Footer from '@/components/schoolsafe/footer';
 import Header from '@/components/schoolsafe/header';
@@ -13,7 +13,43 @@ export default function RegistroScreen() {
   const router = useRouter();
   const colors = useSchoolColors();
   const styles = createStyles(colors);
-  const { history, removeRecord } = useAlerts();
+  const { history, removeRecord, smoke, motion } = useAlerts();
+
+  const smokeActive = smoke.active;
+  const motionActive = motion.active;
+  const hasActive = smokeActive || motionActive;
+  const isSmokeAlert = smokeActive;
+  const activeColor = isSmokeAlert ? colors.red : colors.blue;
+  const activeIcon = isSmokeAlert ? 'flame' : 'walk';
+  const activeTitle = isSmokeAlert ? 'Detector de Fumaça' : 'Detector de Presença';
+  const activeLocation = isSmokeAlert ? 'Banheiro' : 'Corredor Principal';
+  const activeStartedAt = isSmokeAlert ? smoke.startedAt : motion.startedAt;
+
+  const pulse = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (hasActive) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulse, {
+            toValue: 1,
+            duration: 700,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulse, {
+            toValue: 0,
+            duration: 700,
+            useNativeDriver: true,
+          }),
+        ]),
+      ).start();
+    } else {
+      pulse.setValue(0);
+    }
+    return () => pulse.stopAnimation();
+  }, [hasActive, pulse]);
+
+  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
 
   return (
     <View style={styles.screen}>
@@ -30,6 +66,32 @@ export default function RegistroScreen() {
             </View>
             <Text style={styles.backText}>Voltar para a central</Text>
           </TouchableOpacity>
+
+          {hasActive && activeStartedAt ? (
+            <View style={[styles.alertCard, { borderColor: activeColor }]}>
+              <View style={[styles.alertHeader, { backgroundColor: activeColor }]}>
+                <Animated.View
+                  style={[styles.alertIconWrap, { transform: [{ scale: pulseScale }] }]}>
+                  <Ionicons name={activeIcon} size={22} color={colors.white} />
+                </Animated.View>
+                <Text style={styles.alertTitle}>{activeTitle}</Text>
+              </View>
+              <View style={styles.alertBody}>
+                <View style={styles.alertRow}>
+                  <Ionicons name="location" size={18} color={activeColor} />
+                  <Text style={styles.alertLabel}>Localização</Text>
+                  <Text style={[styles.alertValue, { color: activeColor }]}>
+                    {activeLocation}
+                  </Text>
+                </View>
+                <View style={styles.alertRow}>
+                  <Ionicons name="time" size={18} color={activeColor} />
+                  <Text style={styles.alertLabel}>Início da captura</Text>
+                  <Text style={styles.alertValue}>{activeStartedAt}</Text>
+                </View>
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>📋 Registro de Detecções</Text>
@@ -85,7 +147,7 @@ function RecordItem({ record, onDelete }: { record: SensorRecord; onDelete: () =
             onPress={onDelete}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={18} color={colors.textMuted} />
+            <Ionicons name="close" size={16} color={colors.white} />
           </TouchableOpacity>
         </View>
         <View style={styles.recordRow}>
@@ -107,6 +169,59 @@ function createStyles(colors: ReturnType<typeof useSchoolColors>) {
   const shared = createScreenStyles(colors);
   return StyleSheet.create({
     ...shared,
+    alertCard: {
+      width: '100%',
+      maxWidth: 420,
+      borderRadius: 20,
+      borderWidth: 2,
+      overflow: 'hidden',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.15,
+      shadowRadius: 16,
+      elevation: 6,
+    },
+    alertHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: 8,
+      paddingVertical: 12,
+    },
+    alertIconWrap: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    alertTitle: {
+      color: colors.white,
+      fontSize: 16,
+      fontWeight: '800',
+    },
+    alertBody: {
+      backgroundColor: colors.white,
+      padding: 16,
+      gap: 10,
+    },
+    alertRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    alertLabel: {
+      flex: 1,
+      fontSize: 13,
+      color: colors.textMuted,
+      fontWeight: '600',
+    },
+    alertValue: {
+      fontSize: 15,
+      fontWeight: '800',
+      color: colors.navy,
+      fontVariant: ['tabular-nums'],
+    },
     backRow: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -185,10 +300,10 @@ function createStyles(colors: ReturnType<typeof useSchoolColors>) {
       justifyContent: 'space-between',
     },
     deleteButton: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      backgroundColor: colors.gray,
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: colors.red,
       alignItems: 'center',
       justifyContent: 'center',
     },
@@ -216,3 +331,4 @@ function createStyles(colors: ReturnType<typeof useSchoolColors>) {
     },
   });
 }
+
