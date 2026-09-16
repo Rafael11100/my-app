@@ -1,72 +1,72 @@
-import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { BlurView } from 'expo-blur';
 import { Ionicons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useTheme } from '@/context/theme-context';
+import { useAuth } from '@/context/auth-context';
 import { useSchoolColors } from '@/hooks/use-school-colors';
 import { formatDate, formatTime } from '@/utils/date';
 
-type HeaderProps = {
-  showClock?: boolean;
-};
+type HeaderProps = { compact?: boolean };
 
-export default function Header({ showClock = true }: HeaderProps) {
+export default function Header({ compact = true }: HeaderProps) {
   const colors = useSchoolColors();
-  const { isDark, toggleTheme } = useTheme();
+  const { session, signOut } = useAuth();
   const [now, setNow] = useState(new Date());
-
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-
   const styles = createStyles(colors);
+
+  const content = (
+    <View style={styles.row}>
+      <View style={styles.brand}>
+        <View style={styles.logoBadge}>
+          <Text style={styles.logoEmoji}>🏫</Text>
+        </View>
+        <View style={styles.titleBlock}>
+          <Text style={styles.title}>SchoolSafe</Text>
+          <Text style={styles.subtitle}>Sistema de Segurança Escolar</Text>
+        </View>
+      </View>
+
+      <View style={styles.right}>
+        <View style={styles.onlinePill}>
+          <View style={styles.dot} />
+          <Text style={styles.onlineText}>Online</Text>
+        </View>
+        <Text style={styles.clock}>{formatTime(now)}</Text>
+        {session && (
+          <TouchableOpacity
+            onPress={signOut}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Sair da conta"
+            style={styles.logoutBtn}>
+            <Ionicons name="log-out-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.logoutText}>Sair</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+
+  // Glass header compacto — secundário ao conteúdo
+  if (Platform.OS === 'web') {
+    return (
+      <SafeAreaView edges={['top']} style={styles.safe}>
+        <View style={styles.headerWeb}>{content}</View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView edges={['top']} style={styles.safe}>
-      <View style={styles.header}>
-        <View style={styles.topRow}>
-          <View style={styles.logoBadge}>
-            <Text style={styles.logoEmoji}>🏫</Text>
-          </View>
-          <View style={styles.titleBlock}>
-            <Text style={styles.title}>SchoolSafe</Text>
-            <Text style={styles.subtitle}>Sistema Inteligente de Segurança Escolar</Text>
-          </View>
-
-          <TouchableOpacity
-            onPress={toggleTheme}
-            style={styles.themeBtn}
-            activeOpacity={0.8}
-            accessibilityRole="button"
-            accessibilityLabel={
-              isDark ? 'Alternar para o modo claro' : 'Alternar para o modo noturno'
-            }>
-            <Ionicons name={isDark ? 'sunny' : 'moon'} size={20} color={colors.navy} />
-          </TouchableOpacity>
-        </View>
-
-        <View style={styles.infoRow}>
-          <View style={styles.statusRow}>
-            <View style={styles.onlineDot} />
-            <Text style={styles.onlineText}>Sistema Online</Text>
-          </View>
-
-          {showClock && (
-            <View style={styles.clockRow}>
-              <View style={styles.clockItem}>
-                <Text style={styles.clockLabel}>Data</Text>
-                <Text style={styles.clockValue}>{formatDate(now)}</Text>
-              </View>
-              <View style={styles.clockDivider} />
-              <View style={styles.clockItem}>
-                <Text style={styles.clockLabel}>Hora</Text>
-                <Text style={styles.clockValue}>{formatTime(now)}</Text>
-              </View>
-            </View>
-          )}
-        </View>
+      <View style={styles.headerWrap}>
+        <BlurView intensity={26} tint="dark" style={StyleSheet.absoluteFill} />
+        <View style={styles.headerGlassInner}>{content}</View>
       </View>
     </SafeAreaView>
   );
@@ -75,117 +75,85 @@ export default function Header({ showClock = true }: HeaderProps) {
 function createStyles(colors: ReturnType<typeof useSchoolColors>) {
   return StyleSheet.create({
     safe: {
-      backgroundColor: colors.white,
-      borderBottomLeftRadius: 28,
-      borderBottomRightRadius: 28,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 6,
+      backgroundColor: 'transparent',
     },
-header: {
-      alignItems: 'center',
-      paddingHorizontal: 20,
-      paddingBottom: 24,
-      paddingTop: 12,
+    headerWrap: {
+      marginHorizontal: 12,
+      marginTop: 8,
+      borderRadius: 18,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: 'rgba(160,160,160,0.14)',
     },
-    topRow: {
-      width: '100%',
+    headerGlassInner: {
+      backgroundColor: 'rgba(40,40,40,0.72)',
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    headerWeb: {
+      marginHorizontal: 12,
+      marginTop: 8,
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: 'rgba(160,160,160,0.14)',
+      backgroundColor: 'rgba(40,40,40,0.92)',
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+    },
+    row: {
       flexDirection: 'row',
       alignItems: 'center',
-      justifyContent: 'center',
-      gap: 16,
+      justifyContent: 'space-between',
+      gap: 12,
+    },
+    brand: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+      minWidth: 0,
     },
     logoBadge: {
-      width: 56,
-      height: 56,
-      borderRadius: 16,
-      backgroundColor: colors.navy,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    logoEmoji: {
-      fontSize: 30,
-    },
-    titleBlock: {
-      flex: 1,
-      alignItems: 'flex-start',
-    },
-    title: {
-      fontSize: 24,
-      fontWeight: '800',
-      color: colors.navy,
-      letterSpacing: 0.5,
-    },
-    subtitle: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginTop: 2,
-    },
-    themeBtn: {
-      width: 42,
-      height: 42,
-      borderRadius: 21,
-      backgroundColor: colors.background,
-      alignItems: 'center',
-      justifyContent: 'center',
+      width: 36,
+      height: 36,
+      borderRadius: 10,
+      backgroundColor: '#2e2e2e',
       borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-infoRow: {
-      width: '100%',
-      marginTop: 20,
-      gap: 14,
+      borderColor: 'rgba(160,160,160,0.14)',
       alignItems: 'center',
+      justifyContent: 'center',
     },
-    statusRow: {
+    logoEmoji: { fontSize: 18 },
+    titleBlock: { flex: 1, minWidth: 0 },
+    title: { fontSize: 16, fontWeight: '800', color: '#F2F2F2', letterSpacing: 0.3 },
+    subtitle: { fontSize: 11, color: '#a0a0a0', marginTop: 1 },
+    right: { flexDirection: 'row', alignItems: 'center', gap: 10, flexShrink: 0 },
+    onlinePill: {
       flexDirection: 'row',
       alignItems: 'center',
-      alignSelf: 'center',
-      gap: 8,
-      backgroundColor: colors.green + '1A',
-      paddingHorizontal: 14,
+      gap: 6,
+      backgroundColor: 'rgba(34,197,94,0.14)',
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'rgba(34,197,94,0.22)',
+    },
+    dot: { width: 7, height: 7, borderRadius: 4, backgroundColor: '#22C55E' },
+    onlineText: { color: '#22C55E', fontWeight: '700', fontSize: 11 },
+    clock: { fontSize: 12, fontWeight: '700', color: '#a0a0a0', fontVariant: ['tabular-nums'] as any },
+    logoutBtn: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      paddingHorizontal: 10,
       paddingVertical: 6,
       borderRadius: 999,
+      borderWidth: 1,
+      borderColor: 'rgba(160,160,160,0.14)',
+      backgroundColor: 'rgba(255,255,255,0.06)',
     },
-    onlineDot: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      backgroundColor: colors.green,
-    },
-    onlineText: {
-      color: colors.green,
-      fontWeight: '700',
-      fontSize: 13,
-    },
-clockRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      alignSelf: 'center',
-      gap: 24,
-    },
-    clockItem: {
-      alignItems: 'center',
-    },
-    clockLabel: {
-      fontSize: 11,
-      color: colors.textMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 1,
-    },
-    clockValue: {
-      fontSize: 18,
-      fontWeight: '700',
-      color: colors.navy,
-      marginTop: 2,
-      fontVariant: ['tabular-nums'],
-    },
-    clockDivider: {
-      width: 1,
-      height: 30,
-      backgroundColor: colors.gray,
-    },
+    logoutText: { fontSize: 12, fontWeight: '700', color: '#a0a0a0' },
+    dateText: { fontSize: 11, color: '#7a7a7a' },
   });
 }

@@ -1,18 +1,16 @@
 import React from 'react';
-
 import SensorScreen from '@/components/schoolsafe/sensor-screen';
-
 export default function SmokeScreen() {
   return (
     <SensorScreen
       kind="smoke"
-      title="Monitoramento de Fumaça"
-      subtitle="Banheiro"
-      cardTitle="🔥 Detector de Fumaça"
+      title="Sensores de Fumaça"
+      subtitle="5 sensores"
+      cardTitle="Detector de Fumaça"
       route="/smoke"
-accent="#DC2626"
-      blinkFrom="rgba(220,38,38,0)"
-      blinkTo="rgba(220,38,38,0.55)"
+      accent="#EF4444"
+      blinkFrom="rgba(239,68,68,0)"
+      blinkTo="rgba(239,68,68,0.12)"
       duration={10000}
     />
   );

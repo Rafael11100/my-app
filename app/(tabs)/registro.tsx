@@ -1,334 +1,126 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef } from 'react';
-import { Animated, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useMemo, useRef } from 'react';
+import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import Footer from '@/components/schoolsafe/footer';
 import Header from '@/components/schoolsafe/header';
-import { createScreenStyles } from '@/components/schoolsafe/screen-styles';
 import { useAlerts, type SensorRecord } from '@/context/alerts-context';
 import { useSchoolColors } from '@/hooks/use-school-colors';
 
 export default function RegistroScreen() {
   const router = useRouter();
   const colors = useSchoolColors();
-  const styles = createStyles(colors);
-  const { history, removeRecord, smoke, motion } = useAlerts();
+  const { history, removeRecord, smokeSensors, motionSensors } = useAlerts();
 
-  const smokeActive = smoke.active;
-  const motionActive = motion.active;
-  const hasActive = smokeActive || motionActive;
-  const isSmokeAlert = smokeActive;
-  const activeColor = isSmokeAlert ? colors.red : colors.blue;
-  const activeIcon = isSmokeAlert ? 'flame' : 'walk';
-  const activeTitle = isSmokeAlert ? 'Detector de Fumaça' : 'Detector de Presença';
-  const activeLocation = isSmokeAlert ? 'Banheiro' : 'Corredor Principal';
-  const activeStartedAt = isSmokeAlert ? smoke.startedAt : motion.startedAt;
-
-  const pulse = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (hasActive) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulse, {
-            toValue: 1,
-            duration: 700,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulse, {
-            toValue: 0,
-            duration: 700,
-            useNativeDriver: true,
-          }),
-        ]),
-      ).start();
-    } else {
-      pulse.setValue(0);
-    }
-    return () => pulse.stopAnimation();
-  }, [hasActive, pulse]);
-
-  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.12] });
+  const activeSmoke = useMemo(() => smokeSensors.filter((s) => s.active), [smokeSensors]);
+  const activeMotion = useMemo(() => motionSensors.filter((s) => s.active), [motionSensors]);
+  const hasActive = activeSmoke.length > 0 || activeMotion.length > 0;
+  const activeList = [...activeSmoke, ...activeMotion];
 
   return (
     <View style={styles.screen}>
-      <Header showClock={false} />
-
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.cardsArea}>
-          <TouchableOpacity
-            style={styles.backRow}
-            onPress={() => router.back()}
-            activeOpacity={0.7}>
-            <View style={styles.backBadge}>
-              <Ionicons name="arrow-back" size={18} color={colors.navy} />
-            </View>
-            <Text style={styles.backText}>Voltar para a central</Text>
-          </TouchableOpacity>
-
-          {hasActive && activeStartedAt ? (
-            <View style={[styles.alertCard, { borderColor: activeColor }]}>
-              <View style={[styles.alertHeader, { backgroundColor: activeColor }]}>
-                <Animated.View
-                  style={[styles.alertIconWrap, { transform: [{ scale: pulseScale }] }]}>
-                  <Ionicons name={activeIcon} size={22} color={colors.white} />
-                </Animated.View>
-                <Text style={styles.alertTitle}>{activeTitle}</Text>
-              </View>
-              <View style={styles.alertBody}>
-                <View style={styles.alertRow}>
-                  <Ionicons name="location" size={18} color={activeColor} />
-                  <Text style={styles.alertLabel}>Localização</Text>
-                  <Text style={[styles.alertValue, { color: activeColor }]}>
-                    {activeLocation}
-                  </Text>
-                </View>
-                <View style={styles.alertRow}>
-                  <Ionicons name="time" size={18} color={activeColor} />
-                  <Text style={styles.alertLabel}>Início da captura</Text>
-                  <Text style={styles.alertValue}>{activeStartedAt}</Text>
-                </View>
-              </View>
-            </View>
-          ) : null}
-
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>📋 Registro de Detecções</Text>
-            <Text style={styles.sectionSubtitle}>
-              Histórico de ativações dos detectores com hora e local
-            </Text>
+      <Header compact />
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <Pressable onPress={() => router.back()} style={({ pressed }) => [styles.backRow, pressed && { opacity: 0.7 }]} accessibilityRole="button" accessibilityLabel="Voltar para a central" hitSlop={8}>
+          <View style={styles.backBadge}>
+            <Ionicons name="arrow-back" size={16} color="#F2F2F2" />
           </View>
+          <Text style={styles.backText}>Voltar para a central</Text>
+        </Pressable>
 
-          {history.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Ionicons name="document-text-outline" size={44} color={colors.textMuted} />
-              <Text style={styles.emptyTitle}>Nenhum registro ainda</Text>
-              <Text style={styles.emptySubtitle}>
-                Quando um detector for ativado, a hora e o local aparecerão aqui.
-              </Text>
+        {hasActive && (
+          <View style={styles.activeBlock}>
+            <Text style={styles.activeTitle}>Alerta ativo agora</Text>
+            <Text style={styles.activeSub}>Estes sensores estão em alerta neste momento. O alerta encerra automaticamente.</Text>
+            <View style={styles.activeList}>
+              {activeList.map((s) => {
+                const accent = s.kind === 'smoke' ? '#EF4444' : '#3B82F6';
+                return (
+                  <View key={s.id} style={[styles.activeCard, { borderColor: accent + '40', backgroundColor: s.kind === 'smoke' ? 'rgba(239,68,68,0.10)' : 'rgba(59,130,246,0.10)' }]}>
+                    <View style={[styles.activeIcon, { backgroundColor: accent }]}>
+                      <Ionicons name={s.kind === 'smoke' ? 'flame' : 'walk'} size={14} color="#fff" />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.activeCardLabel}>{s.label} · {s.location}</Text>
+                      <Text style={styles.activeCardMeta}>Início {s.startedAt} · {s.kind === 'smoke' ? '10s' : '2s'}</Text>
+                    </View>
+                    <View style={[styles.liveDot, { backgroundColor: accent }]} />
+                  </View>
+                );
+              })}
             </View>
-          ) : (
-            <View style={styles.list}>
-              {history.map((record) => (
-                <RecordItem
-                  key={record.id}
-                  record={record}
-                  onDelete={() => removeRecord(record.id)}
-                />
-              ))}
-            </View>
-          )}
+          </View>
+        )}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Registro de eventos</Text>
+          <Text style={styles.sectionSubtitle}>Histórico de ativações — hora e local. O alerta e a mensagem compartilham o mesmo ciclo de vida.</Text>
         </View>
-      </ScrollView>
 
-      <Footer showTime={false} />
+        {history.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Ionicons name="document-text-outline" size={28} color="#a0a0a0" />
+            <Text style={styles.emptyTitle}>Nenhum registro ainda</Text>
+            <Text style={styles.emptySubtitle}>Quando um detector for ativado, a hora e o local aparecerão aqui.</Text>
+          </View>
+        ) : (
+          <View style={styles.list}>
+            {history.map((record) => (
+              <RecordItem key={record.id} record={record} onDelete={() => removeRecord(record.id)} />
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 function RecordItem({ record, onDelete }: { record: SensorRecord; onDelete: () => void }) {
-  const colors = useSchoolColors();
-  const styles = createStyles(colors);
   const isSmoke = record.kind === 'smoke';
-  const accent = isSmoke ? colors.red : colors.blue;
-  const kindLabel = isSmoke ? 'Detector de Fumaça' : 'Detector de Presença';
-
+  const accent = isSmoke ? '#EF4444' : '#3B82F6';
+  const kindLabel = isSmoke ? 'Fumaça' : 'Movimento';
   return (
-    <View style={[styles.recordCard, { borderColor: accent }]}>
-      <View style={[styles.recordIcon, { backgroundColor: accent }]}>
-        <Ionicons name={isSmoke ? 'flame' : 'walk'} size={22} color={colors.white} />
+    <View style={[styles.recordCard, { borderColor: accent + '2A' }]} accessibilityLabel={`${kindLabel} ${record.location} às ${record.startedAt}`}>
+      <View style={[styles.recordIcon, { backgroundColor: accent + '18', borderColor: accent + '22' }]}>
+        <Ionicons name={isSmoke ? 'flame' : 'walk'} size={16} color={accent} />
       </View>
       <View style={styles.recordBody}>
-        <View style={styles.recordHeader}>
-          <Text style={styles.recordKind}>{kindLabel}</Text>
-          <TouchableOpacity
-            style={styles.deleteButton}
-            onPress={onDelete}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close" size={16} color={colors.white} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.recordRow}>
-          <Ionicons name="time" size={16} color={accent} />
-          <Text style={styles.recordLabel}>Hora da ativação</Text>
-          <Text style={[styles.recordValue, { color: accent }]}>{record.startedAt}</Text>
-        </View>
-        <View style={styles.recordRow}>
-          <Ionicons name="location" size={16} color={accent} />
-          <Text style={styles.recordLabel}>Local</Text>
-          <Text style={styles.recordValue}>{record.location}</Text>
-        </View>
+        <Text style={styles.recordKind}>{kindLabel} · {record.location}</Text>
+        <Text style={styles.recordMeta}>{record.startedAt}</Text>
       </View>
+      <Pressable onPress={onDelete} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Remover registro ${record.id}`} style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.7 }]}>
+        <Ionicons name="close" size={14} color="#a0a0a0" />
+      </Pressable>
     </View>
   );
 }
 
-function createStyles(colors: ReturnType<typeof useSchoolColors>) {
-  const shared = createScreenStyles(colors);
-  return StyleSheet.create({
-    ...shared,
-    alertCard: {
-      width: '100%',
-      maxWidth: 420,
-      borderRadius: 20,
-      borderWidth: 2,
-      overflow: 'hidden',
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 8 },
-      shadowOpacity: 0.15,
-      shadowRadius: 16,
-      elevation: 6,
-    },
-    alertHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: 8,
-      paddingVertical: 12,
-    },
-    alertIconWrap: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    alertTitle: {
-      color: colors.white,
-      fontSize: 16,
-      fontWeight: '800',
-    },
-    alertBody: {
-      backgroundColor: colors.white,
-      padding: 16,
-      gap: 10,
-    },
-    alertRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    alertLabel: {
-      flex: 1,
-      fontSize: 13,
-      color: colors.textMuted,
-      fontWeight: '600',
-    },
-    alertValue: {
-      fontSize: 15,
-      fontWeight: '800',
-      color: colors.navy,
-      fontVariant: ['tabular-nums'],
-    },
-    backRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      alignSelf: 'flex-start',
-      gap: 10,
-    },
-    backBadge: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: colors.white,
-      alignItems: 'center',
-      justifyContent: 'center',
-      borderWidth: 1,
-      borderColor: colors.cardBorder,
-    },
-    backText: {
-      fontSize: 14,
-      fontWeight: '600',
-      color: colors.navy,
-    },
-    emptyCard: {
-      width: '100%',
-      alignItems: 'center',
-      gap: 8,
-      backgroundColor: colors.white,
-      borderRadius: 20,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      paddingVertical: 40,
-      paddingHorizontal: 24,
-    },
-    emptyTitle: {
-      fontSize: 17,
-      fontWeight: '800',
-      color: colors.navy,
-    },
-    emptySubtitle: {
-      fontSize: 13,
-      color: colors.textMuted,
-      textAlign: 'center',
-    },
-    list: {
-      width: '100%',
-      maxWidth: 420,
-      gap: 14,
-    },
-    recordCard: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 14,
-      backgroundColor: colors.white,
-      borderRadius: 18,
-      borderWidth: 1.5,
-      padding: 16,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    recordIcon: {
-      width: 48,
-      height: 48,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    recordBody: {
-      flex: 1,
-      gap: 8,
-    },
-    recordHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    deleteButton: {
-      width: 30,
-      height: 30,
-      borderRadius: 15,
-      backgroundColor: colors.red,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    recordKind: {
-      fontSize: 16,
-      fontWeight: '800',
-      color: colors.navy,
-    },
-    recordRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    recordLabel: {
-      flex: 1,
-      fontSize: 12,
-      color: colors.textMuted,
-      fontWeight: '600',
-    },
-    recordValue: {
-      fontSize: 14,
-      fontWeight: '800',
-      color: colors.navy,
-      fontVariant: ['tabular-nums'],
-    },
-  });
-}
-
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: '#1f1f1f' },
+  content: { alignItems: 'center', paddingHorizontal: 16, paddingTop: 10, paddingBottom: 28, gap: 16 },
+  backRow: { flexDirection: 'row', alignItems: 'center', gap: 10, alignSelf: 'flex-start' },
+  backBadge: { width: 32, height: 32, borderRadius: 16, backgroundColor: 'rgba(40,40,40,0.92)', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'rgba(160,160,160,0.14)' },
+  backText: { fontSize: 13, fontWeight: '600', color: '#F2F2F2' },
+  activeBlock: { width: '100%', maxWidth: 520, backgroundColor: 'rgba(40,40,40,0.92)', borderWidth: 1, borderColor: 'rgba(160,160,160,0.14)', borderRadius: 18, padding: 14, gap: 10 },
+  activeTitle: { fontSize: 13, fontWeight: '800', color: '#F2F2F2' },
+  activeSub: { fontSize: 12, color: '#a0a0a0', lineHeight: 16 },
+  activeList: { gap: 8 },
+  activeCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
+  activeIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  activeCardLabel: { fontSize: 13, fontWeight: '700', color: '#F2F2F2' },
+  activeCardMeta: { fontSize: 11, color: '#a0a0a0', marginTop: 1 },
+  liveDot: { width: 8, height: 8, borderRadius: 4 },
+  sectionHeader: { width: '100%', maxWidth: 520, gap: 4 },
+  sectionTitle: { fontSize: 14, fontWeight: '800', color: '#F2F2F2' },
+  sectionSubtitle: { fontSize: 12, color: '#7a7a7a', lineHeight: 16 },
+  emptyCard: { width: '100%', maxWidth: 520, alignItems: 'center', gap: 8, backgroundColor: 'rgba(40,40,40,0.92)', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(160,160,160,0.14)', paddingVertical: 32, paddingHorizontal: 20 },
+  emptyTitle: { fontSize: 14, fontWeight: '800', color: '#F2F2F2' },
+  emptySubtitle: { fontSize: 12, color: '#7a7a7a', textAlign: 'center' },
+  list: { width: '100%', maxWidth: 520, gap: 10 },
+  recordCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(40,40,40,0.92)', borderRadius: 14, borderWidth: 1, padding: 12 },
+  recordIcon: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
+  recordBody: { flex: 1, gap: 2 },
+  recordKind: { fontSize: 13, fontWeight: '700', color: '#F2F2F2' },
+  recordMeta: { fontSize: 11, color: '#7a7a7a', fontVariant: ['tabular-nums'] as any },
+  deleteBtn: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(160,160,160,0.10)' },
+});
