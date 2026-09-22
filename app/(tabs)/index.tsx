@@ -3,13 +3,13 @@ import { BlurView } from "expo-blur";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef } from "react";
 import {
-  Animated,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    Animated,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from "react-native";
 
 import Header from "@/components/schoolsafe/header";
@@ -94,7 +94,7 @@ function SensorMiniRow({
         ]}
       >
         <Ionicons
-          name={isSmoke ? "flame" : "walk"}
+          name={isSmoke ? "flame-outline" : "walk-outline"}
           size={14}
           color={sensor.active ? "#fff" : "#a0a0a0"}
         />
@@ -120,7 +120,7 @@ function SensorMiniRow({
         </Text>
         {isSmoke && sensor.active && (
           <Ionicons
-            name="warning"
+            name="warning-outline"
             size={10}
             color={statusColor}
             style={{ marginLeft: 2 }}
@@ -235,9 +235,9 @@ export default function HomeScreen() {
                   name={
                     hasActive
                       ? smokeActive
-                        ? "flame"
-                        : "walk"
-                      : "shield-checkmark"
+                        ? "flame-outline"
+                        : "walk-outline"
+                      : "shield-checkmark-outline"
                   }
                   size={20}
                   color={
@@ -282,9 +282,9 @@ export default function HomeScreen() {
                     name={
                       hasActive
                         ? smokeActive
-                          ? "flame"
-                          : "walk"
-                        : "shield-checkmark"
+                          ? "flame-outline"
+                          : "walk-outline"
+                        : "shield-checkmark-outline"
                     }
                     size={20}
                     color={
@@ -321,7 +321,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              <Ionicons name="flame" size={14} color="#EF4444" />
+              <Ionicons name="flame-outline" size={14} color="#EF4444" />
             </View>
             <Text style={styles.groupTitle}>Fumaça</Text>
             <Text style={styles.groupCount}>5 sensores</Text>
@@ -352,7 +352,7 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              <Ionicons name="walk" size={14} color="#3B82F6" />
+              <Ionicons name="walk-outline" size={14} color="#3B82F6" />
             </View>
             <Text style={styles.groupTitle}>Movimento</Text>
             <Text style={styles.groupCount}>5 sensores</Text>
@@ -403,7 +403,7 @@ export default function HomeScreen() {
                   { backgroundColor: "rgba(239,68,68,0.14)" },
                 ]}
               >
-                <Ionicons name="flame" size={20} color="#EF4444" />
+                <Ionicons name="flame-outline" size={20} color="#EF4444" />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text style={styles.actionTitle}>Sensores de fumaça</Text>
@@ -417,7 +417,11 @@ export default function HomeScreen() {
                   { backgroundColor: "rgba(239,68,68,0.18)" },
                 ]}
               >
-                <Ionicons name="arrow-forward" size={14} color="#F87171" />
+                <Ionicons
+                  name="arrow-forward-outline"
+                  size={14}
+                  color="#F87171"
+                />
               </View>
             </Pressable>
 
@@ -439,7 +443,7 @@ export default function HomeScreen() {
                   { backgroundColor: "rgba(59,130,246,0.14)" },
                 ]}
               >
-                <Ionicons name="walk" size={20} color="#3B82F6" />
+                <Ionicons name="walk-outline" size={20} color="#3B82F6" />
               </View>
               <View style={styles.actionTextWrap}>
                 <Text style={styles.actionTitle}>Sensores de movimento</Text>
@@ -453,7 +457,11 @@ export default function HomeScreen() {
                   { backgroundColor: "rgba(59,130,246,0.18)" },
                 ]}
               >
-                <Ionicons name="arrow-forward" size={14} color="#60A5FA" />
+                <Ionicons
+                  name="arrow-forward-outline"
+                  size={14}
+                  color="#60A5FA"
+                />
               </View>
             </Pressable>
 
@@ -475,13 +483,21 @@ export default function HomeScreen() {
                   { backgroundColor: "rgba(160,160,160,0.12)" },
                 ]}
               >
-                <Ionicons name="document-text" size={16} color="#a0a0a0" />
+                <Ionicons
+                  name="document-text-outline"
+                  size={16}
+                  color="#a0a0a0"
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.actionTitleSmall}>Registro / Log</Text>
                 <Text style={styles.actionSubSmall}>Histórico de eventos</Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#a0a0a0" />
+              <Ionicons
+                name="chevron-forward-outline"
+                size={16}
+                color="#a0a0a0"
+              />
             </Pressable>
           </View>
         </View>
