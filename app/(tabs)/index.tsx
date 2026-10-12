@@ -1,264 +1,63 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import Reanimated, {
-  Extrapolation,
-  interpolate,
-  useAnimatedScrollHandler,
-  useAnimatedStyle,
-  useSharedValue,
-} from 'react-native-reanimated';
-
-import Footer from '@/components/schoolsafe/footer';
+import { useIsFocused } from '@react-navigation/native';
+import React, { useCallback } from 'react';
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Header from '@/components/schoolsafe/header';
-import { createScreenStyles } from '@/components/schoolsafe/screen-styles';
-import { useAlerts } from '@/context/alerts-context';
-import { useSchoolColors } from '@/hooks/use-school-colors';
-
-const BLINK_DURATION_SMOKE = 10000; // 10s
-const BLINK_DURATION_MOTION = 2000; // 2s
+import MonitorCard from '@/components/schoolsafe/monitor-card';
+import SchoolMap from '@/components/schoolsafe/school-map';
+import { useAlerts, type Sensor } from '@/context/alerts-context';
+import { Typography } from '@/constants/theme';
+import { useSensorSheet, type SensorOriginRect } from '@/components/schoolsafe/sensor-sheet';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const colors = useSchoolColors();
-  const styles = createStyles(colors);
-  const { smoke, motion } = useAlerts();
-
-  const glow = useRef(new Animated.Value(0)).current;
-  const blinkEndTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const smokeActive = smoke.active;
-  const motionActive = motion.active;
-  const hasActive = smokeActive || motionActive;
-
-  // A luz pisca por 10s (fumaça) ou 2s (presença) e para quando é desativada.
-  const blinking = useRef(false);
-  const [isBlinking, setIsBlinking] = useState(blinking.current);
-
-  const stopBlinking = () => {
-    if (blinkEndTimer.current) clearTimeout(blinkEndTimer.current);
-    blinkEndTimer.current = null;
-    blinking.current = false;
-    setIsBlinking(false);
-  };
-
-  useEffect(() => {
-    if (hasActive) {
-      if (blinkEndTimer.current) clearTimeout(blinkEndTimer.current);
-      blinking.current = true;
-      setIsBlinking(true);
-      const duration = smokeActive ? BLINK_DURATION_SMOKE : BLINK_DURATION_MOTION;
-      blinkEndTimer.current = setTimeout(() => {
-        blinking.current = false;
-        setIsBlinking(false);
-      }, duration);
-    } else {
-      stopBlinking();
-    }
-    return () => stopBlinking();
-  }, [hasActive, smokeActive, motionActive]);
-
-  useEffect(() => {
-    if (isBlinking) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(glow, { toValue: 1, duration: 500, useNativeDriver: false }),
-          Animated.timing(glow, { toValue: 0, duration: 500, useNativeDriver: false }),
-        ]),
-      ).start();
-    } else {
-      glow.setValue(0);
-    }
-    return () => glow.stopAnimation();
-  }, [isBlinking, glow]);
-
-  const glowColor = glow.interpolate({
-    inputRange: [0, 1],
-    outputRange: [
-      'rgba(0,0,0,0)',
-      smokeActive
-        ? 'rgba(220,38,38,0.55)'
-        : motionActive
-          ? 'rgba(37,99,235,0.55)'
-          : 'rgba(0,0,0,0)',
-    ],
-  });
-
-  // O fundo da página inicial é sempre branco.
-  // O piscar acontece apenas sobreposto quando há alerta.
-  const alertColor = colors.white;
-
-  // ==== Animação parallax de Header/Footer ao rolar ====
-  const scrollY = useSharedValue(0);
-  const onScroll = useAnimatedScrollHandler((e) => {
-    scrollY.value = e.contentOffset.y;
-  });
-
-  const headerStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(scrollY.value, [0, 120], [0, -60], Extrapolation.CLAMP);
-    const opacity = interpolate(scrollY.value, [0, 100], [1, 0.4], Extrapolation.CLAMP);
-    return { transform: [{ translateY }], opacity };
-  });
-
-  const footerStyle = useAnimatedStyle(() => {
-    const translateY = interpolate(scrollY.value, [0, 120], [0, 80], Extrapolation.CLAMP);
-    const opacity = interpolate(scrollY.value, [0, 100], [1, 0.4], Extrapolation.CLAMP);
-    return { transform: [{ translateY }], opacity };
-  });
-  // =====================================================
-
-  return (
-    <View style={[styles.screen, { backgroundColor: alertColor }]}>
-      <Animated.View
-        pointerEvents="none"
-        style={[StyleSheet.absoluteFillObject, styles.overlay, { backgroundColor: glowColor }]}
-      />
-
-      <Reanimated.View style={headerStyle}>
-        <Header showClock={false} />
-      </Reanimated.View>
-
-      <Reanimated.ScrollView
-        contentContainerStyle={styles.content}
-        onScroll={onScroll}
-        scrollEventThrottle={16}>
-        <View style={styles.cardsArea}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Central de Sensores</Text>
-            <Text style={styles.sectionSubtitle}>
-              {hasActive
-                ? '⚠️ Alerta em andamento!'
-                : 'Selecione um detector para abrir o monitoramento'}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.registroBtn}
-            onPress={() => router.push('/registro')}
-            activeOpacity={0.8}>
-            <Ionicons name="document-text" size={16} color={colors.navy} />
-            <Text style={styles.registroBtnText}>Registro</Text>
-          </TouchableOpacity>
-
-          <View style={styles.row}>
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/smoke')}
-              activeOpacity={0.85}>
-              <View style={[styles.navIconWrap, { backgroundColor: '#FEE2E2' }]}>
-                <Ionicons name="flame" size={26} color={colors.red} />
-              </View>
-              <View style={styles.navTextBlock}>
-                <Text style={styles.navTitle}>Detector de Fumaça</Text>
-                <Text style={styles.navSubtitle}>Banheiro</Text>
-              </View>
-              <View style={[styles.chevronWrap, { backgroundColor: colors.red }]}>
-                <Ionicons name="arrow-forward" size={15} color={colors.white} />
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.navCard}
-              onPress={() => router.push('/motion')}
-              activeOpacity={0.85}>
-              <View style={[styles.navIconWrap, { backgroundColor: '#EFF6FF' }]}>
-                <Ionicons name="walk" size={26} color={colors.blue} />
-              </View>
-              <View style={styles.navTextBlock}>
-                <Text style={styles.navTitle}>Detector de Presença</Text>
-                <Text style={styles.navSubtitle}>Corredor Principal</Text>
-              </View>
-              <View style={[styles.chevronWrap, { backgroundColor: colors.blue }]}>
-                <Ionicons name="arrow-forward" size={15} color={colors.white} />
-              </View>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Reanimated.ScrollView>
-
-      <Reanimated.View style={footerStyle}>
-        <Footer showTime={false} />
-      </Reanimated.View>
-    </View>
-  );
+  const focused = useIsFocused();
+  const { sensors } = useAlerts();
+  const { openSensor: openSheet } = useSensorSheet();
+  const openSensor = useCallback((sensor: Sensor, originRect?: SensorOriginRect) => {
+    const screen = Dimensions.get('window');
+    openSheet(sensor.id, originRect ?? { x: screen.width / 2 - 28, y: screen.height / 2 - 28, width: 56, height: 56 });
+  }, [openSheet]);
+  return <View style={styles.screen}>
+    <Header />
+    <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <View style={styles.intro}>
+        <Text style={styles.eyebrow}>PAINEL DE CONTROLE</Text>
+        <Text style={styles.title}>Visão geral</Text>
+        <Text style={styles.subtitle}>Acompanhe os sensores e a localização dos dispositivos no térreo.</Text>
+      </View>
+      <MonitorCard sensors={sensors} onSelect={openSensor} />
+      <SchoolMap sensors={sensors} focused={focused} />
+      <Pressable onPress={() => router.push('/registro')} style={styles.history} accessibilityRole="button">
+        <View style={styles.historyIcon}><Ionicons name="time-outline" size={19} color="#a0a0a0" /></View>
+        <View style={{ flex: 1 }}><Text style={styles.historyTitle}>Registro de eventos</Text><Text style={styles.historySub}>Consulte o histórico de ativações</Text></View>
+        <Ionicons name="chevron-forward-outline" size={18} color="#777" />
+      </Pressable>
+      <Text style={styles.footer}>SCHOOLSAFE · SEGURANÇA ESCOLAR</Text>
+    </ScrollView>
+  </View>;
 }
 
-function createStyles(colors: ReturnType<typeof useSchoolColors>) {
-  const shared = createScreenStyles(colors);
-  return StyleSheet.create({
-    ...shared,
-    row: {
-      width: '100%',
-      flexDirection: 'row',
-      alignItems: 'stretch',
-      gap: 14,
-    },
-    navCard: {
-      flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 10,
-      backgroundColor: colors.white,
-      borderRadius: 20,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      padding: 14,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 6 },
-      shadowOpacity: 0.08,
-      shadowRadius: 12,
-      elevation: 4,
-    },
-    navIconWrap: {
-      width: 48,
-      height: 48,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    navTextBlock: {
-      flex: 1,
-      gap: 3,
-    },
-    navTitle: {
-      fontSize: 14,
-      fontWeight: '800',
-      color: colors.navy,
-    },
-    navSubtitle: {
-      fontSize: 11,
-      color: colors.textMuted,
-    },
-    chevronWrap: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    registroBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 6,
-      alignSelf: 'flex-start',
-      backgroundColor: colors.white,
-      borderRadius: 999,
-      borderWidth: 1.5,
-      borderColor: colors.cardBorder,
-      paddingHorizontal: 14,
-      paddingVertical: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 4 },
-      shadowOpacity: 0.06,
-      shadowRadius: 8,
-      elevation: 2,
-    },
-    registroBtnText: {
-      fontSize: 13,
-      fontWeight: '700',
-      color: colors.navy,
-    },
-  });
-}
-
+const styles = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: 'transparent' },
+  content: { alignItems: 'center', paddingHorizontal: 16, paddingTop: 18, paddingBottom: 112, gap: 16 },
+  intro: { width: '100%', maxWidth: 520, gap: 5 },
+  eyebrow: { color: '#a0a0a0', fontSize: 9, fontWeight: '700', letterSpacing: 1.4 },
+  title: { color: '#F2F2F2', fontSize: 28, fontWeight: '700', fontFamily: Typography.bold, letterSpacing: -0.8 },
+  subtitle: { color: '#a0a0a0', fontSize: 13, fontFamily: Typography.regular, lineHeight: 19, maxWidth: 420 },
+  sectionHead: { width: '100%', maxWidth: 520, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 },
+  sectionTitle: { color: '#F2F2F2', fontSize: 17, fontWeight: '700', fontFamily: Typography.semibold },
+  systems: { width: '100%', maxWidth: 520, gap: 10 },
+  systemCard: { width: '100%', flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14, borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)', backgroundColor: 'rgba(255,255,255,0.045)', minHeight: 82 },
+  systemIcon: { width: 44, height: 44, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  systemText: { flex: 1, gap: 3 },
+  systemTitle: { color: '#F2F2F2', fontSize: 14, fontWeight: '700', fontFamily: Typography.semibold },
+  systemDescription: { color: '#a0a0a0', fontSize: 11, fontFamily: Typography.regular },
+  systemCount: { color: '#777', fontSize: 10, marginTop: 2 },
+  history: { width: '100%', maxWidth: 520, flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)', backgroundColor: 'rgba(255,255,255,0.035)', padding: 13 },
+  historyIcon: { width: 38, height: 38, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(255,255,255,0.06)' },
+  historyTitle: { color: '#F2F2F2', fontSize: 13, fontWeight: '700' },
+  historySub: { color: '#888', fontSize: 11, marginTop: 3 },
+  footer: { color: '#555', fontSize: 8, letterSpacing: 1.6, marginTop: 8 },
+});

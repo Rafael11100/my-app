@@ -1,9 +1,28 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { timeNow } from '@/utils/date';
+import { AREAS, type AreaId } from '@/constants/areas';
+import { SENSOR_REGISTRY } from '@/constants/sensor-registry';
 
 export type SensorKind = 'smoke' | 'motion';
+export type SensorStatus = 'normal' | 'alert' | 'offline';
+
+export type Sensor = {
+  id: string;
+  kind: SensorKind;
+  index: number; // 1..5
+  label: string; // Sensor 01
+  location: string;
+  areaId: AreaId | null;
+  status: SensorStatus;
+  active: boolean;
+  startedAt: string | null;
+  endedAt: string | null;
+  lastEventAt: string | null;
+};
 
 export type SensorAlert = {
   active: boolean;
@@ -14,37 +33,65 @@ export type SensorAlert = {
 export type SensorRecord = {
   id: string;
   kind: SensorKind;
+  sensorId: string;
   location: string;
   startedAt: string;
 };
 
-const LOCATIONS: Record<SensorKind, string> = {
-  smoke: 'Banheiro',
-  motion: 'Corredor Principal',
-};
-
 const STORAGE_KEY = '@schoolsafe/history';
 
+function makeSensors(): Sensor[] {
+  const counters: Record<SensorKind, number> = { smoke: 0, motion: 0 };
+  return SENSOR_REGISTRY.map((seed) => {
+    counters[seed.kind] += 1;
+    const area = seed.areaId ? AREAS[seed.areaId] : null;
+    return {
+      id: seed.id,
+      kind: seed.kind,
+      index: counters[seed.kind],
+      label: `Sensor ${String(counters[seed.kind]).padStart(2, '0')}`,
+      areaId: seed.areaId,
+      location: area ? area.name.replace(/\s*\n\s*/g, ' ').trim() : 'Não cadastrado',
+      status: 'normal',
+      active: false,
+      startedAt: null,
+      endedAt: null,
+      lastEventAt: null,
+    };
+  });
+}
+
+const DURATIONS: Record<SensorKind, number> = { smoke: 10000, motion: 2000 };
+
 type AlertsContextType = {
+  sensors: Sensor[];
+  smokeSensors: Sensor[];
+  motionSensors: Sensor[];
+  // legado agregado (para compatibilidade com telas antigas)
   smoke: SensorAlert;
   motion: SensorAlert;
   history: SensorRecord[];
+  /** Ativa um sensor específico; duração automática unifica visual+mensagem */
+  activateSensor: (sensorId: string) => void;
+  deactivateSensor: (sensorId: string) => void;
+  registerSensor: (sensorId: string, areaId: AreaId) => void;
+  unregisterSensor: (sensorId: string) => void;
+  triggerRandom: (kind: SensorKind) => void;
+  // compat legado
   startAlert: (kind: SensorKind) => void;
   endAlert: (kind: SensorKind) => void;
   removeRecord: (id: string) => void;
+  clearHistory: () => void;
 };
 
 const AlertsContext = createContext<AlertsContextType | undefined>(undefined);
 
-const emptyAlert: SensorAlert = { active: false, startedAt: null, endedAt: null };
-
 export function AlertsProvider({ children }: { children: React.ReactNode }) {
-  const [smoke, setSmoke] = useState<SensorAlert>(emptyAlert);
-  const [motion, setMotion] = useState<SensorAlert>(emptyAlert);
-  const clearTimers = useRef<{ [k in SensorKind]?: ReturnType<typeof setTimeout> }>({});
+  const [sensors, setSensors] = useState<Sensor[]>(() => makeSensors());
   const [history, setHistory] = useState<SensorRecord[]>([]);
+  const timers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  // Carrega o histórico salvo ao montar o app
+  // carregar historico
   useEffect(() => {
     let active = true;
     (async () => {
@@ -54,55 +101,141 @@ export function AlertsProvider({ children }: { children: React.ReactNode }) {
           const parsed = JSON.parse(raw) as SensorRecord[];
           if (Array.isArray(parsed)) setHistory(parsed);
         }
-      } catch {
-        // ignora erros de leitura
-      }
+      } catch {}
     })();
     return () => {
       active = false;
     };
   }, []);
-
-  // Salva o histórico sempre que ele mudar
   useEffect(() => {
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(history)).catch(() => {});
   }, [history]);
 
-  const startAlert = useCallback((kind: SensorKind) => {
-    if (clearTimers.current[kind]) clearTimeout(clearTimers.current[kind]!);
-    const startedAt = timeNow();
-    if (kind === 'smoke') {
-      setSmoke({ active: true, startedAt, endedAt: null });
-    } else {
-      setMotion({ active: true, startedAt, endedAt: null });
+  // cleanup timers ao desmontar
+  useEffect(() => {
+    return () => {
+      timers.current.forEach((t) => clearTimeout(t));
+      timers.current.clear();
+    };
+  }, []);
+
+  const activateSensor = useCallback(
+    (sensorId: string) => {
+      const sensor = sensors.find((s) => s.id === sensorId);
+      if (!sensor || sensor.active) return;
+      const startedAt = timeNow();
+      setSensors((prev) =>
+        prev.map((s) =>
+          s.id === sensorId ? { ...s, active: true, status: 'alert', startedAt, endedAt: null, lastEventAt: startedAt } : s,
+        ),
+      );
+      setHistory((prev) => [{ id: `${Date.now()}-${sensorId}`, kind: sensor.kind, sensorId, location: sensor.location, startedAt }, ...prev]);
+
+      // haptic diferenciado
+      if (Platform.OS !== 'web') {
+        if (sensor.kind === 'smoke') Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+        else Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+      }
+
+      // timer único que é fonte de verdade — quando encerra, desativa visual + mensagem juntos
+      const existing = timers.current.get(sensorId);
+      if (existing) clearTimeout(existing);
+      const t = setTimeout(() => {
+        setSensors((prev) => prev.map((s) => (s.id === sensorId ? { ...s, active: false, status: 'normal', endedAt: timeNow() } : s)));
+        timers.current.delete(sensorId);
+      }, DURATIONS[sensor.kind]);
+      timers.current.set(sensorId, t);
+    },
+    [sensors],
+  );
+
+  const deactivateSensor = useCallback((sensorId: string) => {
+    const t = timers.current.get(sensorId);
+    if (t) {
+      clearTimeout(t);
+      timers.current.delete(sensorId);
     }
-    setHistory((prev) => [
-      {
-        id: `${Date.now()}-${kind}`,
-        kind,
-        location: LOCATIONS[kind],
-        startedAt,
-      },
-      ...prev,
-    ]);
+    setSensors((prev) => prev.map((s) => (s.id === sensorId ? { ...s, active: false, status: 'normal', endedAt: timeNow() } : s)));
   }, []);
 
-  const endAlert = useCallback((kind: SensorKind) => {
-    const endedAt = timeNow();
-    const setter = kind === 'smoke' ? setSmoke : setMotion;
-    setter((s) => ({ active: false, startedAt: s.startedAt, endedAt }));
-    clearTimers.current[kind] = setTimeout(() => {
-      setter((s) => (s.endedAt === endedAt ? emptyAlert : s));
-    }, 6000);
+  // Ponto de integração do hardware: registre o id real da área recebido do backend.
+  const registerSensor = useCallback((sensorId: string, areaId: AreaId) => {
+    const area = AREAS[areaId];
+    setSensors((prev) => prev.map((sensor) =>
+      sensor.id === sensorId ? { ...sensor, areaId, location: area.name.replace(/\s*\n\s*/g, ' ').trim() } : sensor,
+    ));
   }, []);
 
-  const removeRecord = useCallback((id: string) => {
-    setHistory((prev) => prev.filter((r) => r.id !== id));
+  const unregisterSensor = useCallback((sensorId: string) => {
+    setSensors((prev) => prev.map((sensor) =>
+      sensor.id === sensorId ? { ...sensor, areaId: null, location: 'Não cadastrado' } : sensor,
+    ));
   }, []);
+
+  const triggerRandom = useCallback(
+    (kind: SensorKind) => {
+      const pool = sensors.filter((s) => s.kind === kind && !s.active);
+      const target = pool.length ? pool[Math.floor(Math.random() * pool.length)] : sensors.filter((s) => s.kind === kind)[0];
+      if (target) activateSensor(target.id);
+    },
+    [sensors, activateSensor],
+  );
+
+  // compat legado
+  const startAlert = useCallback(
+    (kind: SensorKind) => {
+      triggerRandom(kind);
+    },
+    [triggerRandom],
+  );
+  const endAlert = useCallback(
+    (kind: SensorKind) => {
+      // desativa todos daquele kind
+      sensors
+        .filter((s) => s.kind === kind && s.active)
+        .forEach((s) => deactivateSensor(s.id));
+    },
+    [sensors, deactivateSensor],
+  );
+
+  const removeRecord = useCallback((id: string) => setHistory((prev) => prev.filter((r) => r.id !== id)), []);
+  const clearHistory = useCallback(() => setHistory([]), []);
+
+  const smokeSensors = useMemo(() => sensors.filter((s) => s.kind === 'smoke'), [sensors]);
+  const motionSensors = useMemo(() => sensors.filter((s) => s.kind === 'motion'), [sensors]);
+
+  const smoke: SensorAlert = useMemo(() => {
+    const active = smokeSensors.some((s) => s.active);
+    const startedAt = smokeSensors.find((s) => s.active)?.startedAt ?? null;
+    const endedAt = !active ? smokeSensors.find((s) => s.endedAt)?.endedAt ?? null : null;
+    return { active, startedAt, endedAt };
+  }, [smokeSensors]);
+  const motion: SensorAlert = useMemo(() => {
+    const active = motionSensors.some((s) => s.active);
+    const startedAt = motionSensors.find((s) => s.active)?.startedAt ?? null;
+    const endedAt = !active ? motionSensors.find((s) => s.endedAt)?.endedAt ?? null : null;
+    return { active, startedAt, endedAt };
+  }, [motionSensors]);
 
   const value = useMemo<AlertsContextType>(
-    () => ({ smoke, motion, history, startAlert, endAlert, removeRecord }),
-    [smoke, motion, history, startAlert, endAlert, removeRecord],
+    () => ({
+      sensors,
+      smokeSensors,
+      motionSensors,
+      smoke,
+      motion,
+      history,
+      activateSensor,
+      deactivateSensor,
+      registerSensor,
+      unregisterSensor,
+      triggerRandom,
+      startAlert,
+      endAlert,
+      removeRecord,
+      clearHistory,
+    }),
+    [sensors, smokeSensors, motionSensors, smoke, motion, history, activateSensor, deactivateSensor, registerSensor, unregisterSensor, triggerRandom, startAlert, endAlert, removeRecord, clearHistory],
   );
 
   return <AlertsContext.Provider value={value}>{children}</AlertsContext.Provider>;
@@ -110,8 +243,6 @@ export function AlertsProvider({ children }: { children: React.ReactNode }) {
 
 export function useAlerts(): AlertsContextType {
   const ctx = useContext(AlertsContext);
-  if (!ctx) {
-    throw new Error('useAlerts must be used within an AlertsProvider');
-  }
+  if (!ctx) throw new Error('useAlerts must be used within an AlertsProvider');
   return ctx;
 }

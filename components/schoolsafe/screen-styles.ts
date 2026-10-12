@@ -1,18 +1,13 @@
 import { StyleSheet } from 'react-native';
-
 import { useSchoolColors } from '@/hooks/use-school-colors';
 
 type Colors = ReturnType<typeof useSchoolColors>;
 
-/**
- * Estilos compartilhados de tela (shell) usados pelas telas do SchoolSafe.
- * Centraliza estilos repetidos entre index, smoke e motion.
- */
 export function createScreenStyles(colors: Colors) {
   return StyleSheet.create({
     screen: {
       flex: 1,
-      backgroundColor: colors.background,
+      backgroundColor: colors.background, // #1f1f1f
     },
     overlay: {
       backgroundColor: 'transparent',
@@ -20,40 +15,36 @@ export function createScreenStyles(colors: Colors) {
     content: {
       flexGrow: 1,
       alignItems: 'center',
-      justifyContent: 'center',
-      paddingBottom: 8,
+      paddingBottom: 24,
     },
     cardsArea: {
       width: '100%',
-      maxWidth: 460,
+      maxWidth: 520,
       alignItems: 'center',
-      gap: 28,
-      paddingHorizontal: 20,
-      paddingVertical: 32,
+      gap: 18,
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      paddingBottom: 24,
     },
     sectionHeader: {
       width: '100%',
-      alignItems: 'center',
-      gap: 6,
-      marginBottom: 4,
+      alignItems: 'flex-start',
+      gap: 4,
+      marginBottom: 2,
     },
     sectionTitle: {
-      fontSize: 22,
+      fontSize: 16,
       fontWeight: '800',
-      color: colors.navy,
+      color: colors.textPrimary,
+      letterSpacing: 0.2,
     },
     sectionSubtitle: {
-      fontSize: 14,
+      fontSize: 13,
       color: colors.textMuted,
-      textAlign: 'center',
     },
   });
 }
 
-/**
- * Estilos compartilhados dos controles de sensor (voltar + ativar/desativar).
- * Usados pelas telas de monitoramento smoke e motion.
- */
 export function createControlStyles(colors: Colors) {
   return StyleSheet.create({
     backRow: {
@@ -66,7 +57,7 @@ export function createControlStyles(colors: Colors) {
       width: 36,
       height: 36,
       borderRadius: 18,
-      backgroundColor: colors.white,
+      backgroundColor: 'rgba(40,40,40,0.92)',
       alignItems: 'center',
       justifyContent: 'center',
       borderWidth: 1,
@@ -75,12 +66,13 @@ export function createControlStyles(colors: Colors) {
     backText: {
       fontSize: 14,
       fontWeight: '600',
-      color: colors.navy,
+      color: colors.textPrimary,
     },
     controls: {
       width: '100%',
-      maxWidth: 420,
+      maxWidth: 520,
       alignItems: 'center',
+      gap: 10,
     },
     controlBtn: {
       flexDirection: 'row',
@@ -90,11 +82,12 @@ export function createControlStyles(colors: Colors) {
       width: '100%',
       paddingVertical: 14,
       borderRadius: 999,
+      minHeight: 48,
     },
     controlText: {
       color: colors.white,
       fontWeight: '800',
-      fontSize: 16,
+      fontSize: 15,
     },
   });
 }

@@ -1,11 +1,18 @@
-import React, { useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  Easing,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
-import { useSchoolColors } from '@/hooks/use-school-colors';
+import { useSchoolColors } from "@/hooks/use-school-colors";
 
 type Props = {
-  kind: 'smoke' | 'motion';
+  kind: "smoke" | "motion";
   title: string;
   location: string;
   alert: boolean;
@@ -24,7 +31,7 @@ export default function DetectorCard({
   onDetails,
 }: Props) {
   const colors = useSchoolColors();
-  const isSmoke = kind === 'smoke';
+  const isSmoke = kind === "smoke";
   const accent = isSmoke ? colors.red : colors.blue;
   const pulse = useRef(new Animated.Value(0)).current;
   const glow = useRef(new Animated.Value(0)).current;
@@ -54,7 +61,11 @@ export default function DetectorCard({
       }).start();
     } else {
       pulse.setValue(0);
-      Animated.timing(glow, { toValue: 0, duration: 400, useNativeDriver: false }).start();
+      Animated.timing(glow, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: false,
+      }).start();
     }
     return () => {
       pulse.stopAnimation();
@@ -62,14 +73,20 @@ export default function DetectorCard({
     };
   }, [alert, blink, pulse, glow]);
 
-  const pulseScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.18] });
-const glowColor = glow.interpolate({
+  const pulseScale = pulse.interpolate({
     inputRange: [0, 1],
-    outputRange: ['rgba(226,232,240,0)', `rgba(${isSmoke ? '220,38,38' : '37,99,235'},0.28)`],
+    outputRange: [1, 1.18],
+  });
+  const glowColor = glow.interpolate({
+    inputRange: [0, 1],
+    outputRange: [
+      "rgba(226,232,240,0)",
+      `rgba(${isSmoke ? "220,38,38" : "37,99,235"},0.28)`,
+    ],
   });
   const bgColor = glow.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.white, isSmoke ? '#FEE2E2' : '#EFF6FF'],
+    outputRange: [colors.white, isSmoke ? "#FEE2E2" : "#EFF6FF"],
   });
   const borderColor = glow.interpolate({
     inputRange: [0, 1],
@@ -78,9 +95,16 @@ const glowColor = glow.interpolate({
 
   const statusText = alert
     ? isSmoke
-      ? '🔴 FUMAÇA NO LOCAL'
-      : '🔵 MOVIMENTO NESSE LOCAL'
-    : '🟢 ' + (isSmoke ? 'Nenhuma fumaça detectada' : 'Nenhum movimento detectado');
+      ? "FUMAÇA NO LOCAL"
+      : "MOVIMENTO NESSE LOCAL"
+    : isSmoke
+      ? "Nenhuma fumaça detectada"
+      : "Nenhum movimento detectado";
+  const statusIcon = alert
+    ? isSmoke
+      ? "flame-outline"
+      : "walk-outline"
+    : "checkmark-circle-outline";
   const statusColor = alert ? accent : colors.green;
 
   const styles = createStyles(colors);
@@ -91,12 +115,17 @@ const glowColor = glow.interpolate({
         styles.card,
         { backgroundColor: bgColor, borderColor, shadowColor: accent },
         alert && styles.cardShadowOn,
-      ]}>
+      ]}
+    >
       {/* Brilho suave interno quando há alerta */}
       {alert && blink && (
         <Animated.View
           pointerEvents="none"
-          style={[StyleSheet.absoluteFillObject, styles.cardGlow, { backgroundColor: glowColor }]}
+          style={[
+            StyleSheet.absoluteFillObject,
+            styles.cardGlow,
+            { backgroundColor: glowColor },
+          ]}
         />
       )}
       <View style={styles.iconWrap}>
@@ -105,9 +134,10 @@ const glowColor = glow.interpolate({
             styles.iconCircle,
             { backgroundColor: alert ? accent : colors.background },
             alert && blink && { transform: [{ scale: pulseScale }] },
-          ]}>
+          ]}
+        >
           <Ionicons
-            name={isSmoke ? 'flame' : 'walk'}
+            name={isSmoke ? "flame-outline" : "walk-outline"}
             size={44}
             color={alert ? colors.white : accent}
           />
@@ -116,8 +146,13 @@ const glowColor = glow.interpolate({
 
       <Text style={styles.cardTitle}>{title}</Text>
 
-      <View style={[styles.statusBadge, { backgroundColor: statusColor + '1A' }]}>
-        <Text style={[styles.statusText, { color: statusColor }]}>{statusText}</Text>
+      <View
+        style={[styles.statusBadge, { backgroundColor: statusColor + "1A" }]}
+      >
+        <Ionicons name={statusIcon as any} size={15} color={statusColor} />
+        <Text style={[styles.statusText, { color: statusColor }]}>
+          {statusText}
+        </Text>
       </View>
 
       {alert && startedAt && (
@@ -137,9 +172,14 @@ const glowColor = glow.interpolate({
       <TouchableOpacity
         onPress={onDetails}
         style={[styles.detailsBtn, { backgroundColor: accent }]}
-        activeOpacity={0.85}>
+        activeOpacity={0.85}
+      >
         <Text style={styles.detailsText}>Ver detalhes</Text>
-        <Ionicons name="chevron-forward" size={16} color={colors.white} />
+        <Ionicons
+          name="chevron-forward-outline"
+          size={16}
+          color={colors.white}
+        />
       </TouchableOpacity>
     </Animated.View>
   );
@@ -148,12 +188,12 @@ const glowColor = glow.interpolate({
 function createStyles(colors: ReturnType<typeof useSchoolColors>) {
   return StyleSheet.create({
     card: {
-      width: '100%',
+      width: "100%",
       maxWidth: 420,
       borderRadius: 24,
       borderWidth: 1.5,
       padding: 22,
-      alignItems: 'center',
+      alignItems: "center",
       shadowOffset: { width: 0, height: 8 },
       shadowOpacity: 0.08,
       shadowRadius: 16,
@@ -173,12 +213,12 @@ function createStyles(colors: ReturnType<typeof useSchoolColors>) {
       width: 92,
       height: 92,
       borderRadius: 46,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     cardTitle: {
       fontSize: 20,
-      fontWeight: '800',
+      fontWeight: "800",
       color: colors.navy,
       marginBottom: 10,
     },
@@ -190,30 +230,30 @@ function createStyles(colors: ReturnType<typeof useSchoolColors>) {
     },
     statusText: {
       fontSize: 15,
-      fontWeight: '700',
+      fontWeight: "700",
     },
     metaRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 18,
       marginTop: 16,
       marginBottom: 18,
     },
     metaItem: {
-      alignItems: 'center',
+      alignItems: "center",
     },
     metaLabel: {
       fontSize: 11,
       color: colors.textMuted,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 1,
     },
     metaValue: {
       fontSize: 17,
-      fontWeight: '700',
+      fontWeight: "700",
       color: colors.navy,
       marginTop: 2,
-      fontVariant: ['tabular-nums'],
+      fontVariant: ["tabular-nums"],
     },
     metaDivider: {
       width: 1,
@@ -221,8 +261,8 @@ function createStyles(colors: ReturnType<typeof useSchoolColors>) {
       backgroundColor: colors.gray,
     },
     detailsBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: 6,
       paddingHorizontal: 22,
       paddingVertical: 10,
@@ -230,9 +270,8 @@ function createStyles(colors: ReturnType<typeof useSchoolColors>) {
     },
     detailsText: {
       color: colors.white,
-      fontWeight: '700',
+      fontWeight: "700",
       fontSize: 14,
     },
   });
 }
-
