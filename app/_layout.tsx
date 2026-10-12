@@ -2,12 +2,15 @@ import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
+import { useFonts, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { AlertsProvider } from '@/context/alerts-context';
 import { AuthProvider, useAuth } from '@/context/auth-context';
 import { ThemeProvider as SchoolThemeProvider } from '@/context/theme-context';
+import AmbientBackground from '@/components/schoolsafe/ambient-background';
 
 const schoolTheme = {
   ...DefaultTheme,
@@ -51,7 +54,8 @@ function RootStack() {
 
   return (
     <>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#1f1f1f' } }}>
+      <AmbientBackground />
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="login" options={{ gestureEnabled: false, animation: 'fade' }} />
         <Stack.Screen
@@ -71,7 +75,10 @@ function RootStack() {
 }
 
 export default function RootLayout() {
+  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+  if (!fontsLoaded) return null;
   return (
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#1f1f1f' }}>
     <SchoolThemeProvider>
       <AuthProvider>
         <AlertsProvider>
@@ -81,5 +88,6 @@ export default function RootLayout() {
         </AlertsProvider>
       </AuthProvider>
     </SchoolThemeProvider>
+    </GestureHandlerRootView>
   );
 }

@@ -4,6 +4,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { Platform } from 'react-native';
 
 import { timeNow } from '@/utils/date';
+import { AREAS, type AreaId } from '@/constants/areas';
+import { SENSOR_REGISTRY } from '@/constants/sensor-registry';
 
 export type SensorKind = 'smoke' | 'motion';
 export type SensorStatus = 'normal' | 'alert' | 'offline';
@@ -14,6 +16,7 @@ export type Sensor = {
   index: number; // 1..5
   label: string; // Sensor 01
   location: string;
+  areaId: AreaId | null;
   status: SensorStatus;
   active: boolean;
   startedAt: string | null;
@@ -37,46 +40,25 @@ export type SensorRecord = {
 
 const STORAGE_KEY = '@schoolsafe/history';
 
-const LOCATIONS_SMOKE = ['Banheiro Térreo', 'Banheiro 1º Andar', 'Cozinha', 'Laboratório', 'Biblioteca'];
-const LOCATIONS_MOTION = [
-  'Corredor Principal',
-  'Entrada',
-  'Pátio',
-  'Corredor Fundos',
-  'Estacionamento',
-];
-
 function makeSensors(): Sensor[] {
-  const out: Sensor[] = [];
-  for (let i = 1; i <= 5; i++) {
-    out.push({
-      id: `SMOKE_${i}`,
-      kind: 'smoke',
-      index: i,
-      label: `Sensor ${String(i).padStart(2, '0')}`,
-      location: LOCATIONS_SMOKE[i - 1],
+  const counters: Record<SensorKind, number> = { smoke: 0, motion: 0 };
+  return SENSOR_REGISTRY.map((seed) => {
+    counters[seed.kind] += 1;
+    const area = seed.areaId ? AREAS[seed.areaId] : null;
+    return {
+      id: seed.id,
+      kind: seed.kind,
+      index: counters[seed.kind],
+      label: `Sensor ${String(counters[seed.kind]).padStart(2, '0')}`,
+      areaId: seed.areaId,
+      location: area ? area.name.replace(/\s*\n\s*/g, ' ').trim() : 'Não cadastrado',
       status: 'normal',
       active: false,
       startedAt: null,
       endedAt: null,
       lastEventAt: null,
-    });
-  }
-  for (let i = 1; i <= 5; i++) {
-    out.push({
-      id: `MOTION_${i}`,
-      kind: 'motion',
-      index: i,
-      label: `Sensor ${String(i).padStart(2, '0')}`,
-      location: LOCATIONS_MOTION[i - 1],
-      status: 'normal',
-      active: false,
-      startedAt: null,
-      endedAt: null,
-      lastEventAt: null,
-    });
-  }
-  return out;
+    };
+  });
 }
 
 const DURATIONS: Record<SensorKind, number> = { smoke: 10000, motion: 2000 };
@@ -92,6 +74,8 @@ type AlertsContextType = {
   /** Ativa um sensor específico; duração automática unifica visual+mensagem */
   activateSensor: (sensorId: string) => void;
   deactivateSensor: (sensorId: string) => void;
+  registerSensor: (sensorId: string, areaId: AreaId) => void;
+  unregisterSensor: (sensorId: string) => void;
   triggerRandom: (kind: SensorKind) => void;
   // compat legado
   startAlert: (kind: SensorKind) => void;
@@ -174,6 +158,20 @@ export function AlertsProvider({ children }: { children: React.ReactNode }) {
     setSensors((prev) => prev.map((s) => (s.id === sensorId ? { ...s, active: false, status: 'normal', endedAt: timeNow() } : s)));
   }, []);
 
+  // Ponto de integração do hardware: registre o id real da área recebido do backend.
+  const registerSensor = useCallback((sensorId: string, areaId: AreaId) => {
+    const area = AREAS[areaId];
+    setSensors((prev) => prev.map((sensor) =>
+      sensor.id === sensorId ? { ...sensor, areaId, location: area.name.replace(/\s*\n\s*/g, ' ').trim() } : sensor,
+    ));
+  }, []);
+
+  const unregisterSensor = useCallback((sensorId: string) => {
+    setSensors((prev) => prev.map((sensor) =>
+      sensor.id === sensorId ? { ...sensor, areaId: null, location: 'Não cadastrado' } : sensor,
+    ));
+  }, []);
+
   const triggerRandom = useCallback(
     (kind: SensorKind) => {
       const pool = sensors.filter((s) => s.kind === kind && !s.active);
@@ -229,13 +227,15 @@ export function AlertsProvider({ children }: { children: React.ReactNode }) {
       history,
       activateSensor,
       deactivateSensor,
+      registerSensor,
+      unregisterSensor,
       triggerRandom,
       startAlert,
       endAlert,
       removeRecord,
       clearHistory,
     }),
-    [sensors, smokeSensors, motionSensors, smoke, motion, history, activateSensor, deactivateSensor, triggerRandom, startAlert, endAlert, removeRecord, clearHistory],
+    [sensors, smokeSensors, motionSensors, smoke, motion, history, activateSensor, deactivateSensor, registerSensor, unregisterSensor, triggerRandom, startAlert, endAlert, removeRecord, clearHistory],
   );
 
   return <AlertsContext.Provider value={value}>{children}</AlertsContext.Provider>;

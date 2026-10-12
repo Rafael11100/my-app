@@ -2,6 +2,8 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '@/context/auth-context';
+import Dock from '@/components/schoolsafe/dock';
+import { SensorSheetProvider } from '@/components/schoolsafe/sensor-sheet';
 
 export default function TabLayout() {
   const { isAuthenticated, loading } = useAuth();
@@ -33,11 +35,16 @@ export default function TabLayout() {
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#1f1f1f' } }}>
+    <SensorSheetProvider>
+    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
       <Stack.Screen name="index" />
       <Stack.Screen name="smoke" />
       <Stack.Screen name="motion" />
       <Stack.Screen name="registro" />
     </Stack>
+    <Dock />
+    </View>
+    </SensorSheetProvider>
   );
 }
