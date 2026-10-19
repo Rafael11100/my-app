@@ -6,6 +6,12 @@ import { sha256Hex } from '@/utils/sha256';
 
 const STORAGE_KEY = '@schoolsafe/session';
 const SESSION_TTL_MS = 24 * 60 * 60 * 1000;
+
+function isLocalhostWeb(): boolean {
+  if (Platform.OS !== 'web' || typeof window === 'undefined') return false;
+  const hostname = window.location.hostname.toLowerCase();
+  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1' || hostname === '[::1]';
+}
 export type Session = { token: string; username: string; role: 'admin'; issuedAt: number; expiresAt: number };
 type AuthContextType = { session: Session | null; loading: boolean; isAuthenticated: boolean; signIn: (username: string, password: string) => Promise<void>; signOut: () => Promise<void>; backendConfigured: boolean };
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,9 +31,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const backendUrl = process.env.EXPO_PUBLIC_AUTH_URL ?? '';
   const backendConfigured = backendUrl.length > 0;
+  const localBypassEnabled = isLocalhostWeb();
   useEffect(() => {
     (async () => {
       try {
+        if (localBypassEnabled) {
+          const now = Date.now();
+          setSession({
+            token: 'local-development-bypass',
+            username: 'local-dev',
+            role: 'admin',
+            issuedAt: now,
+            expiresAt: now + SESSION_TTL_MS,
+          });
+          return;
+        }
         const raw = await safeGet(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw) as Session;
@@ -36,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch { await safeDelete(STORAGE_KEY); } finally { setLoading(false); }
     })();
-  }, []);
+  }, [localBypassEnabled]);
 
   const signIn = useCallback(async (username: string, password: string) => {
     const normalized = username.trim().toLowerCase();
@@ -63,9 +81,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => { await safeDelete(STORAGE_KEY); setSession(null); }, []);
   const value = useMemo<AuthContextType>(() => ({
-    session, loading, isAuthenticated: !!session && session.expiresAt > Date.now() && session.role === 'admin',
+    session, loading, isAuthenticated: localBypassEnabled || (!!session && session.expiresAt > Date.now() && session.role === 'admin'),
     signIn, signOut, backendConfigured,
-  }), [session, loading, signIn, signOut, backendConfigured]);
+  }), [session, loading, signIn, signOut, backendConfigured, localBypassEnabled]);
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 export function useAuth(): AuthContextType {
