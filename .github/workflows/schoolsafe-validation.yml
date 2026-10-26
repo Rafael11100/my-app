@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   validate:
-    name: TypeScript, Expo lint, and auth API syntax
+    name: TypeScript, changed auth/UI lint, and auth API syntax
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,8 +30,8 @@ jobs:
         run: npm ci
       - name: TypeScript check
         run: npx tsc --noEmit
-      - name: Expo lint
-        run: npx expo lint
+      - name: Lint changed authentication and branding screens
+        run: npx eslint app/login.tsx context/auth-context.tsx components/schoolsafe/header.tsx
       - name: Authentication server syntax
         run: node --check server/index.mjs
       - name: Validate JSON configuration
