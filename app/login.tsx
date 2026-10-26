@@ -22,7 +22,7 @@ export default function LoginScreen() {
   const [focusedField, setFocusedField] = useState<'token' | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState(0);
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(0);
   const remainingSeconds = Math.max(0, Math.ceil((lockedUntil - now) / 1000));
   const shake = useSharedValue(0);
   const cardStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
@@ -60,6 +60,8 @@ export default function LoginScreen() {
         } else {
           setFailedAttempts(next);
         }
+        // Reanimated SharedValue mutations are intentional for the input-shake animation.
+        // eslint-disable-next-line react-hooks/immutability
         if (reduceMotion) shake.value = withTiming(0, { duration: 150 });
         else shake.value = withSequence(
           withTiming(-8, { duration: 45 }),

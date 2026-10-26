@@ -168,6 +168,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(next);
   }, [backendConfigured, backendUrl]);
 
+  useEffect(() => {
+    if (!session) return;
+    const delay = Math.max(0, session.expiresAt - Date.now());
+    const timer = setTimeout(() => {
+      void safeDelete(STORAGE_KEY).finally(() => setSession(null));
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [session]);
+
   const signOut = useCallback(async () => {
     await safeDelete(STORAGE_KEY);
     setSession(null);
@@ -176,7 +185,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<AuthContextType>(() => ({
     session,
     loading,
-    isAuthenticated: !!session && session.expiresAt > Date.now() && session.role === 'admin',
+    isAuthenticated: !!session && session.role === 'admin',
     signIn,
     signOut,
     backendConfigured,
