@@ -1,50 +1,34 @@
-# Welcome to your Expo app 👋
+# Segurança Escolar
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplicativo de monitoramento escolar desenvolvido com Expo e React Native.
 
-## Get started
+## Login administrativo por token
 
-1. Install dependencies
+A tela de acesso aceita apenas um token. Os dois tokens administrativos são verificados no servidor, não no aplicativo; assim, o mesmo token pode ser usado em outro celular ou computador sem depender de hashes locais ou de uma máquina específica.
 
-   ```bash
-   npm install
-   ```
+**Não coloque os tokens no código do app nem em arquivos públicos do repositório.** Configure-os somente nas variáveis de ambiente do servidor.
 
-2. Start the app
+### Executar o servidor de autenticação localmente
 
-   ```bash
-   npx expo start
-   ```
+1. Entre na pasta `server` e copie `.env.example` para `.env`.
+2. Preencha `ADMIN_TOKEN_1`, `ADMIN_TOKEN_2` e `JWT_SECRET` com os valores secretos fornecidos ao administrador.
+3. Execute `npm start`. A API ficará disponível na porta definida em `PORT` (padrão: `3000`).
+4. Na raiz do app, crie um arquivo `.env` com `EXPO_PUBLIC_AUTH_URL=http://IP-DO-SERVIDOR:3000`.
+5. Inicie o app com `npm install` e `npm start`.
 
-In the output, you'll find options to open the app in a
+Para testar em outro dispositivo, use o IP da máquina na mesma rede local ou, preferencialmente, publique o servidor com HTTPS e configure a URL pública. **Não use `localhost` no celular**, pois ele se refere ao próprio dispositivo.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Publicar o servidor
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Publique a pasta `server` como serviço Node.js (Node 20 ou superior), com o comando de inicialização `npm start`. Cadastre `ADMIN_TOKEN_1`, `ADMIN_TOKEN_2`, `JWT_SECRET` e, em produção, `ALLOWED_ORIGINS` como variáveis de ambiente no provedor de hospedagem. Configure `EXPO_PUBLIC_AUTH_URL` no ambiente de build do Expo com a URL HTTPS desse serviço.
 
-## Get a fresh project
+A API compara os tokens diretamente em tempo constante, aplica limite básico de tentativas por IP e emite uma sessão JWT com expiração de 24 horas. A assinatura HMAC protege a sessão emitida; ela não substitui a validação dos tokens no servidor.
 
-When you're ready, run:
+## Desenvolvimento do app
 
 ```bash
-npm run reset-project
+npm install
+npm start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+O nome visível, o identificador do app e os ícones foram configurados para **Segurança Escolar**.

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Glass } from '@/components/schoolsafe/glass';
 import { Typography } from '@/constants/theme';
@@ -18,10 +18,12 @@ export default function Header({ compact: _compact = true }: HeaderProps) {
       <Glass style={styles.header} borderRadius={22} intensity={52}>
         <View style={styles.row}>
           <Pressable onPress={() => router.replace('/' as any)} style={styles.brand} accessibilityRole="button" accessibilityLabel="Voltar à central">
-            <View style={styles.logoBadge}><Ionicons name="shield-checkmark-outline" size={21} color="#F2F2F2" /></View>
+            <View style={styles.logoBadge}>
+              <Image source={require('../../assets/images/seguranca-escolar.png')} style={styles.logoImage} resizeMode="contain" accessibilityLabel="Emblema Segurança Escolar" />
+            </View>
             <View style={styles.titleBlock}>
-              <Text style={styles.title}>SchoolSafe</Text>
-              <Text style={styles.subtitle}>SEGURANÇA ESCOLAR</Text>
+              <Text style={styles.title}>Segurança Escolar</Text>
+              <Text style={styles.subtitle}>MONITORAMENTO ESCOLAR</Text>
             </View>
           </Pressable>
           <View style={styles.right}>
@@ -41,10 +43,11 @@ const styles = StyleSheet.create({
   header: { marginHorizontal: 12, marginTop: 8, paddingHorizontal: 14, paddingVertical: 12 },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   brand: { flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 },
-  logoBadge: { width: 40, height: 40, borderRadius: 13, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' },
+  logoBadge: { width: 40, height: 40, borderRadius: 13, backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  logoImage: { width: 39, height: 39, borderRadius: 12 },
   titleBlock: { flex: 1, minWidth: 0 },
-  title: { fontSize: 18, fontWeight: '700', fontFamily: Typography.bold, color: '#F2F2F2', letterSpacing: -0.3 },
-  subtitle: { fontSize: 9, color: '#a0a0a0', marginTop: 3, letterSpacing: 1.4, fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }) },
+  title: { fontSize: 17, fontWeight: '700', fontFamily: Typography.bold, color: '#F2F2F2', letterSpacing: -0.3 },
+  subtitle: { fontSize: 8, color: '#a0a0a0', marginTop: 3, letterSpacing: 1.2, fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace', default: 'monospace' }) },
   right: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 0 },
   onlinePill: { flexDirection: 'row', alignItems: 'center', gap: 7, backgroundColor: 'rgba(160,160,160,0.10)', paddingHorizontal: 10, paddingVertical: 7, borderRadius: 999, borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#a0a0a0' },

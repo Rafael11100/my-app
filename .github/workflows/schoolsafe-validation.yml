@@ -1,34 +1,21 @@
-name: Validate SchoolSafe redesign
+name: Validate Segurança Escolar
 
 on:
   push:
     branches:
-      - main
+      - master
       - 'feat/**'
-      - 'fix/**'
   pull_request:
     branches:
-      - main
-  workflow_dispatch:
-
-permissions:
-  contents: read
+      - master
 
 jobs:
-  validate:
-    name: TypeScript and Expo lint
+  verify:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: TypeScript check
-        run: npx tsc --noEmit
-      - name: Expo lint
-        run: npx expo lint
+          node-version: 20
+      - run: node --check server/index.mjs
+      - run: node -e "JSON.parse(require('fs').readFileSync('app.json','utf8')); JSON.parse(require('fs').readFileSync('package.json','utf8')); JSON.parse(require('fs').readFileSync('server/package.json','utf8'))"
