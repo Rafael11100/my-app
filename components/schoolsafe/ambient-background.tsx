@@ -95,7 +95,7 @@ export default function AmbientBackground() {
 }
 
 const styles = StyleSheet.create({
-  base: { ...StyleSheet.absoluteFillObject, backgroundColor: '#1f1f1f' },
+  base: { ...StyleSheet.absoluteFill, backgroundColor: '#1f1f1f' },
   glow: { position: 'absolute', width: 420, height: 420, borderRadius: 210 },
   glowA: { top: -190, right: -130 },
   glowB: { top: '28%', left: -240 },

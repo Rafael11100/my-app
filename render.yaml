@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: seguranca-escolar-auth
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: ADMIN_TOKEN_1
+        sync: false
+      - key: ADMIN_TOKEN_2
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: "*"

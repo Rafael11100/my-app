@@ -46,7 +46,7 @@ function MapSensorChipComponent({ sensor, size, focused, onPress, onRef }: Props
   return <View style={[styles.wrapper, size as ViewStyle]}>
     {sensor.active && focused && !reducedMotion && <Animated.View pointerEvents="none" style={[styles.ripple, { borderColor: accent }, rippleStyle]} />}
     <AnimatedPressable
-    ref={(node) => onRef(node as unknown as View | null)}
+    ref={(node: unknown) => onRef(node as View | null)}
     onPress={onPress}
     style={[
       styles.chip,

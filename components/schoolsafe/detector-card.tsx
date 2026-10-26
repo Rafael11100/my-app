@@ -122,7 +122,7 @@ export default function DetectorCard({
         <Animated.View
           pointerEvents="none"
           style={[
-            StyleSheet.absoluteFillObject,
+            StyleSheet.absoluteFill,
             styles.cardGlow,
             { backgroundColor: glowColor },
           ]}
