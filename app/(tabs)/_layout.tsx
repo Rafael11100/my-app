@@ -9,16 +9,17 @@ export default function TabLayout() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
+  // Development/demo access is limited to local Expo development builds.
+  const developmentDemoMode = __DEV__;
 
   useEffect(() => {
-    if (loading) return;
-    if (!isAuthenticated) {
-      // segments[0] === '(tabs)' when inside tabs
+    if (loading && !developmentDemoMode) return;
+    if (!isAuthenticated && !developmentDemoMode) {
       router.replace('/login' as any);
     }
-  }, [isAuthenticated, loading, segments, router]);
+  }, [isAuthenticated, loading, segments, router, developmentDemoMode]);
 
-  if (loading) {
+  if (loading && !developmentDemoMode) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f1f1f' }}>
         <ActivityIndicator color="#a0a0a0" />
@@ -26,7 +27,7 @@ export default function TabLayout() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !developmentDemoMode) {
     return (
       <View style={{ flex: 1, backgroundColor: '#1f1f1f', alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color="#a0a0a0" />
@@ -36,15 +37,15 @@ export default function TabLayout() {
 
   return (
     <SensorSheetProvider>
-    <View style={{ flex: 1, backgroundColor: 'transparent' }}>
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
-      <Stack.Screen name="index" />
-      <Stack.Screen name="smoke" />
-      <Stack.Screen name="motion" />
-      <Stack.Screen name="registro" />
-    </Stack>
-    <Dock />
-    </View>
+      <View style={{ flex: 1, backgroundColor: 'transparent' }}>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: 'transparent' } }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="smoke" />
+          <Stack.Screen name="motion" />
+          <Stack.Screen name="registro" />
+        </Stack>
+        <Dock />
+      </View>
     </SensorSheetProvider>
   );
 }
