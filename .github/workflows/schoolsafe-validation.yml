@@ -3,11 +3,14 @@ name: Validate Segurança Escolar
 on:
   push:
     branches:
+      - main
       - master
       - 'feat/**'
       - 'fix/**'
+      - 'feature/**'
   pull_request:
     branches:
+      - main
       - master
   workflow_dispatch:
 
@@ -31,7 +34,7 @@ jobs:
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Lint changed authentication and branding screens
-        run: npx eslint app/login.tsx context/auth-context.tsx components/schoolsafe/header.tsx
+        run: npx eslint app/login.tsx context/auth-context.tsx context/alerts-context.tsx components/schoolsafe/header.tsx components/schoolsafe/sensor-card.tsx components/schoolsafe/sensor-screen.tsx components/schoolsafe/monitor-card.tsx 'app/(tabs)/index.tsx' 'app/(tabs)/registro.tsx' 'app/(tabs)/_layout.tsx' app/_layout.tsx
       - name: Authentication server syntax
         run: node --check server/index.mjs
       - name: Validate JSON configuration

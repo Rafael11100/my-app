@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeIn, FadeInDown, useAnimatedStyle, useReducedMotion, useSharedValue, withSequence, withTiming } from 'react-native-reanimated';
@@ -15,11 +15,13 @@ export default function LoginScreen() {
   const { signIn } = useAuth();
   const reduceMotion = useReducedMotion();
   const router = useRouter();
-  const [token, setToken] = useState('');
+  const [login, setLogin] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showToken, setShowToken] = useState(false);
-  const [focusedField, setFocusedField] = useState<'token' | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const passwordInput = useRef<TextInput>(null);
+  const [focusedField, setFocusedField] = useState<'login' | 'password' | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState(0);
   const [now, setNow] = useState(0);
@@ -44,14 +46,14 @@ export default function LoginScreen() {
     setLoading(true);
 
     try {
-      await signIn(token);
+      await signIn(login, password);
       setFailedAttempts(0);
       router.replace('/' as any);
     } catch (cause) {
       const message = cause instanceof Error ? cause.message : 'Não foi possível autenticar.';
       setError(message);
 
-      if (message === 'Token inválido.') {
+      if (message === 'Usuário ou senha incorretos.') {
         const next = failedAttempts + 1;
         if (next >= MAX_ATTEMPTS) {
           setFailedAttempts(0);
@@ -92,30 +94,55 @@ export default function LoginScreen() {
             <Glass elevated intensity={58} borderRadius={28} style={styles.card}>
               <View style={styles.cardContent}>
               <Text style={styles.title}>Entrar</Text>
-              <Text style={styles.subtitle}>Informe um dos tokens de acesso administrativo.</Text>
+              <Text style={styles.subtitle}>Entre com uma das duas contas administrativas fixas.</Text>
 
               <View style={styles.field}>
-                <Text style={styles.label}>Token de acesso</Text>
-                <View style={[styles.inputWrap, focusedField === 'token' && styles.inputFocused]}>
-                  <Ionicons name="key-outline" size={17} color="#a0a0a0" />
+                <Text style={styles.label}>Usuário ou e-mail</Text>
+                <View style={[styles.inputWrap, focusedField === 'login' && styles.inputFocused]}>
+                  <Ionicons name="person-outline" size={17} color="#a0a0a0" />
                   <TextInput
-                    value={token}
-                    onChangeText={setToken}
-                    placeholder="Cole seu token de acesso"
+                    value={login}
+                    onChangeText={setLogin}
+                    placeholder="Seu usuário administrativo"
                     placeholderTextColor="#6b6b6b"
                     autoCapitalize="none"
                     autoCorrect={false}
-                    autoComplete="off"
-                    secureTextEntry={!showToken}
+                    autoComplete="username"
+                    returnKeyType="next"
+                    onFocus={() => setFocusedField('login')}
+                    onBlur={() => setFocusedField(null)}
+                    onSubmitEditing={() => passwordInput.current?.focus()}
+                    style={styles.input}
+                    accessibilityLabel="Usuário ou e-mail"
+                    maxLength={100}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.field}>
+                <Text style={styles.label}>Senha</Text>
+                <View style={[styles.inputWrap, focusedField === 'password' && styles.inputFocused]}>
+                  <Ionicons name="lock-closed-outline" size={17} color="#a0a0a0" />
+                  <TextInput
+                    ref={passwordInput}
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Sua senha administrativa"
+                    placeholderTextColor="#6b6b6b"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    autoComplete="current-password"
+                    secureTextEntry={!showPassword}
                     returnKeyType="done"
-                    onFocus={() => setFocusedField('token')}
+                    onFocus={() => setFocusedField('password')}
                     onBlur={() => setFocusedField(null)}
                     onSubmitEditing={() => void submit()}
                     style={styles.input}
-                    accessibilityLabel="Token de acesso"
+                    accessibilityLabel="Senha"
+                    maxLength={128}
                   />
-                  <Pressable onPress={() => setShowToken((value) => !value)} hitSlop={10} accessibilityRole="button" accessibilityLabel={showToken ? 'Ocultar token' : 'Mostrar token'}>
-                    <Ionicons name={showToken ? 'eye-off-outline' : 'eye-outline'} size={18} color="#a0a0a0" />
+                  <Pressable onPress={() => setShowPassword((value) => !value)} hitSlop={10} accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'}>
+                    <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={18} color="#a0a0a0" />
                   </Pressable>
                 </View>
               </View>
@@ -126,7 +153,7 @@ export default function LoginScreen() {
               <Pressable onPress={() => void submit()} disabled={loading || remainingSeconds > 0} style={({ pressed }) => [styles.button, pressed && styles.pressed, (loading || remainingSeconds > 0) && styles.disabled]} accessibilityRole="button" accessibilityLabel="Entrar no sistema">
                 {loading ? <ActivityIndicator color="#1f1f1f" /> : <><Text style={styles.buttonText}>{remainingSeconds ? 'Aguarde ' + remainingSeconds + 's' : 'Entrar'}</Text><Ionicons name="arrow-forward-outline" size={18} color="#1f1f1f" /></>}
               </Pressable>
-              <Text style={styles.foot}>Sessão autenticada no servidor · validade de 24 horas.</Text>
+              <Text style={styles.foot}>Sessão autenticada pelo JazzSecurity · validade de 8 horas.</Text>
               </View>
             </Glass>
           </Animated.View>

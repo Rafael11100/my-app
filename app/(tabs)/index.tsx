@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useIsFocused } from 'expo-router';
+import { useIsFocused, useRouter } from 'expo-router';
 import React, { useCallback } from 'react';
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import Header from '@/components/schoolsafe/header';
@@ -13,7 +12,7 @@ import { useSensorSheet, type SensorOriginRect } from '@/components/schoolsafe/s
 export default function HomeScreen() {
   const router = useRouter();
   const focused = useIsFocused();
-  const { sensors } = useAlerts();
+  const { sensors, telemetryStatus, telemetryError, lastSyncAt, refreshTelemetry } = useAlerts();
   const { openSensor: openSheet } = useSensorSheet();
   const openSensor = useCallback((sensor: Sensor, originRect?: SensorOriginRect) => {
     const screen = Dimensions.get('window');
@@ -27,7 +26,7 @@ export default function HomeScreen() {
         <Text style={styles.title}>Visão geral</Text>
         <Text style={styles.subtitle}>Acompanhe os sensores e a localização dos dispositivos no térreo.</Text>
       </View>
-      <MonitorCard sensors={sensors} onSelect={openSensor} />
+      <MonitorCard sensors={sensors} onSelect={openSensor} telemetryStatus={telemetryStatus} telemetryError={telemetryError} lastSyncAt={lastSyncAt} onRefresh={() => void refreshTelemetry()} />
       <SchoolMap sensors={sensors} focused={focused} />
       <Pressable onPress={() => router.push('/registro')} style={styles.history} accessibilityRole="button">
         <View style={styles.historyIcon}><Ionicons name="time-outline" size={19} color="#a0a0a0" /></View>

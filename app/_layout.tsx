@@ -30,22 +30,20 @@ function RootStack() {
   const { loading, isAuthenticated } = useAuth();
   const router = useRouter();
   const segments = useSegments();
-  // Login is skipped only during local Expo development; production still requires auth.
-  const developmentDemoMode = __DEV__;
 
   useEffect(() => {
-    if (loading && !developmentDemoMode) return;
+    if (loading) return;
     const inAuthGroup = segments[0] === 'login';
     const inTabs = segments[0] === '(tabs)';
-    if (!isAuthenticated && !developmentDemoMode && !inAuthGroup) {
+    if (!isAuthenticated && !inAuthGroup) {
       router.replace('/login' as any);
-    } else if ((isAuthenticated || developmentDemoMode) && inAuthGroup) {
+    } else if (isAuthenticated && inAuthGroup) {
       router.replace('/' as any);
     }
     void inTabs;
-  }, [isAuthenticated, loading, segments, router, developmentDemoMode]);
+  }, [isAuthenticated, loading, segments, router]);
 
-  if (loading && !developmentDemoMode) {
+  if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f1f1f' }}>
         <ActivityIndicator color="#a0a0a0" />

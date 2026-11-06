@@ -2,14 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Glass } from '@/components/schoolsafe/glass';
-import type { Sensor } from '@/context/alerts-context';
+import type { Sensor, TelemetryStatus } from '@/context/alerts-context';
 import type { SensorOriginRect } from '@/components/schoolsafe/sensor-sheet';
 import { formatTime } from '@/utils/date';
 import { Typography } from '@/constants/theme';
 
-type Props = { sensors: Sensor[]; onSelect: (sensor: Sensor, originRect?: SensorOriginRect) => void };
+type Props = { sensors: Sensor[]; onSelect: (sensor: Sensor, originRect?: SensorOriginRect) => void; telemetryStatus: TelemetryStatus; telemetryError: string | null; lastSyncAt: string | null; onRefresh: () => void };
 
-export default function MonitorCard({ sensors, onSelect }: Props) {
+export default function MonitorCard({ sensors, onSelect, telemetryStatus, telemetryError, lastSyncAt, onRefresh }: Props) {
   const [now, setNow] = useState(new Date());
   const alertRefs = useRef<Record<string, View | null>>({});
   useEffect(() => {
@@ -22,6 +22,8 @@ export default function MonitorCard({ sensors, onSelect }: Props) {
   const registered = sensors.filter((sensor) => sensor.areaId !== null).length;
   const unregistered = sensors.length - registered;
   const accent = smoke ? '#EF4444' : motion ? '#3B82F6' : '#a0a0a0';
+  const connectionColor = telemetryStatus === 'online' ? '#22C55E' : telemetryStatus === 'connecting' ? '#EAB308' : '#777';
+  const connectionLabel = telemetryStatus === 'online' ? 'API ONLINE' : telemetryStatus === 'connecting' ? 'CONECTANDO' : telemetryStatus === 'unconfigured' ? 'SEM API' : 'OFFLINE';
   const headline = smoke ? 'ALERTA DE FUMAÇA' : motion ? 'MOVIMENTO DETECTADO' : 'Tudo normal';
   const latestActivity = [...sensors].filter((sensor) => sensor.lastEventAt).sort((a, b) => (b.lastEventAt ?? '').localeCompare(a.lastEventAt ?? ''))[0];
   const selectSensor = (sensor: Sensor) => {
@@ -34,8 +36,8 @@ export default function MonitorCard({ sensors, onSelect }: Props) {
     <View style={styles.content}>
     <View style={styles.top}>
       <View style={[styles.icon, { backgroundColor: active.length ? accent + '20' : 'rgba(160,160,160,0.12)' }]}><Ionicons name={smoke ? 'flame-outline' : motion ? 'walk-outline' : 'shield-checkmark-outline'} size={23} color={accent} /></View>
-      <View style={styles.heading}><Text accessibilityLiveRegion={smoke ? 'assertive' : 'polite'} style={[styles.headline, { color: smoke ? '#EF4444' : motion ? '#60A5FA' : '#a0a0a0' }]}>{headline}</Text><Text style={styles.caption}>{active.length ? 'Acompanhe os eventos ativos abaixo' : 'Todos os sensores estão em estado normal'}</Text></View>
-      <View style={[styles.online, { borderColor: 'rgba(255,255,255,0.12)' }]}><View style={styles.dot} /><Text style={styles.onlineText}>ONLINE</Text></View>
+      <View style={styles.heading}><Text accessibilityLiveRegion={smoke ? 'assertive' : 'polite'} style={[styles.headline, { color: smoke ? '#EF4444' : motion ? '#60A5FA' : '#a0a0a0' }]}>{headline}</Text><Text style={styles.caption}>{telemetryError ? telemetryError : active.length ? 'Acompanhe os eventos ativos abaixo' : 'Todos os sensores estão em estado normal'}</Text></View>
+      <Pressable onPress={onRefresh} style={[styles.online, { borderColor: connectionColor + '55' }]} accessibilityRole="button" accessibilityLabel="Atualizar conexão dos sensores"><View style={[styles.dot, { backgroundColor: connectionColor }]} /><Text style={[styles.onlineText, { color: connectionColor }]}>{connectionLabel}</Text></Pressable>
     </View>
     <View style={styles.stats}>
       <Stat label="Em alerta" value={active.length} accent={active.length ? accent : '#a0a0a0'} />
@@ -46,7 +48,7 @@ export default function MonitorCard({ sensors, onSelect }: Props) {
       const locationLabel = sensor.location.trim() || 'Área sem nome';
       return <Pressable key={sensor.id} ref={(node) => { alertRefs.current[sensor.id] = node; }} onPress={() => selectSensor(sensor)} style={[styles.alertRow, { borderLeftColor: sensor.kind === 'smoke' ? '#EF4444' : '#3B82F6' }]} accessibilityRole="button" accessibilityLabel={`Abrir detalhes de ${locationLabel}, ${sensor.label}`}><Text numberOfLines={1} style={styles.alertRowText}>{locationLabel} · {sensor.label} · {sensor.kind === 'smoke' ? 'Fumaça' : 'Movimento'} · {elapsedFor(sensor.startedAt, now)}</Text></Pressable>;
     })}{active.length > 3 && <Text style={styles.caption}>+{active.length - 3} alertas</Text>}</View>}
-    <View style={styles.footer}><Text style={styles.caption}>Última atividade: {latestActivity ? `${latestActivity.location.trim() || 'Área sem nome'} · ${latestActivity.lastEventAt ?? '—'}` : '—'}</Text><Text style={styles.clock}>Atualizado {formatTime(now)}</Text></View>
+    <View style={styles.footer}><Text style={styles.caption}>Última atividade: {latestActivity ? `${latestActivity.location.trim() || 'Área sem nome'} · ${latestActivity.lastEventAt ?? '—'}` : '—'}</Text><Text style={styles.clock}>{lastSyncAt ? 'Sincronizado ' + formatTime(new Date(lastSyncAt)) : 'Aguardando sincronização'}</Text></View>
     </View>
   </Glass>;
 }

@@ -37,7 +37,7 @@ export function SensorSheetProvider({ children }: { children: React.ReactNode })
 }
 
 function SensorSheet({ state, onClose }: { state: SheetState | null; onClose: () => void }) {
-  const { sensors, activateSensor, deactivateSensor } = useAlerts();
+  const { sensors } = useAlerts();
   const sensor = state ? sensors.find((item) => item.id === state.sensorId) ?? null : null;
   const reducedMotion = useReducedMotion();
   const screen = Dimensions.get('window');
@@ -120,7 +120,7 @@ function SensorSheet({ state, onClose }: { state: SheetState | null; onClose: ()
   const areaPhoto = sensor.areaId ? AREA_PHOTOS[sensor.areaId] : undefined;
   const elapsed = sensor.active && sensor.startedAt ? elapsedSince(sensor.startedAt, elapsedNow) : 0;
   const elapsedLabel = sensor.active ? `${Math.floor(elapsed / 1000)}s` : sensor.endedAt ? 'Encerrado' : '—';
-  const eventLabel = sensor.active ? (smoke ? 'ALERTA' : 'DETECTADO') : 'NORMAL';
+  const eventLabel = sensor.status === 'offline' ? 'SEM SINAL' : sensor.status === 'stale' ? 'SEM ATUALIZAÇÃO' : sensor.active ? (smoke ? 'ALERTA' : 'DETECTADO') : 'NORMAL';
   const locationLabel = sensor.location.trim() || 'Área sem nome';
 
   return <Modal visible transparent animationType="none" statusBarTranslucent onRequestClose={close}>
@@ -147,22 +147,33 @@ function SensorSheet({ state, onClose }: { state: SheetState | null; onClose: ()
               <Text style={styles.title}>{locationLabel}</Text>
               <Text style={styles.sensorSubtitle}>{sensor.label}</Text>
               <View style={styles.details}>
-                <Detail label="Estado" value={eventLabel} valueColor={sensor.active ? accent : '#a0a0a0'} />
+                <Detail label="Estado" value={eventLabel} valueColor={sensor.status === 'offline' || sensor.status === 'stale' ? '#999' : sensor.active ? accent : '#a0a0a0'} />
+                {smoke && typeof sensor.value === 'number' && <Detail label="Leitura MQ-2" value={sensor.value.toFixed(1)} />}
                 <Detail label="Início do alerta" value={sensor.startedAt ?? '—'} />
                 <Detail label="Último evento" value={sensor.lastEventAt ?? '—'} />
+                <Detail label="Último contato" value={sensor.lastSeenAt ? sensor.lastSeenAt.slice(0, 10) + ' ' + displayTime(sensor.lastSeenAt) : 'Nunca recebido'} />
                 <Detail label="Duração" value={elapsedLabel} />
-                <Detail label="Conexão" value="Online" />
+                <Detail label="Conexão" value={sensor.status === 'offline' ? 'Sem sinal' : sensor.status === 'stale' ? 'Leitura desatualizada' : 'Online'} />
               </View>
                 {!sensor.areaId && <Text style={styles.note}>Este sensor ainda não foi associado a uma área do mapa.</Text>}
               </ScrollView>
               <View style={styles.actionContainer}>
-                <Pressable onPress={() => sensor.active ? deactivateSensor(sensor.id) : activateSensor(sensor.id)} style={[styles.action, sensor.active && styles.actionMuted]} accessibilityRole="button"><Ionicons name={sensor.active ? 'power-outline' : 'flash-outline'} size={17} color={sensor.active ? '#F2F2F2' : '#1f1f1f'} /><Text style={[styles.actionText, sensor.active && styles.actionTextMuted]}>{sensor.active ? 'Desativar' : 'Ativar'}</Text></Pressable>
+                <View style={styles.readOnlyNote}>
+                  <Ionicons name="radio-outline" size={16} color={sensor.status === 'offline' || sensor.status === 'stale' ? '#777' : '#a0a0a0'} />
+                  <Text style={styles.readOnlyText}>Estado recebido em tempo real do ESP via JazzSecurity. Este aplicativo não ativa nem desativa sensores.</Text>
+                </View>
               </View>
             </View>
           </Glass>
         </Animated.View>
     </View></GestureHandlerRootView>
   </Modal>;
+}
+
+function displayTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
 function elapsedSince(time: string, now: number) {
@@ -206,9 +217,7 @@ const styles = StyleSheet.create({
   detailRow: { minHeight: 34, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
   detailLabel: { color: '#8b8b8b', fontSize: 11 },
   detailValue: { fontSize: 11, fontWeight: '600', flexShrink: 1, textAlign: 'right' },
-  action: { borderRadius: 999, height: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#F2F2F2' },
-  actionMuted: { backgroundColor: 'rgba(255,255,255,0.08)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.10)' },
-  actionText: { color: '#1f1f1f', fontSize: 13, fontWeight: '800' },
-  actionTextMuted: { color: '#F2F2F2' },
+  readOnlyNote: { minHeight: 44, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: 'rgba(255,255,255,0.035)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  readOnlyText: { flex: 1, color: '#999', fontSize: 10, lineHeight: 15 },
   note: { textAlign: 'center', color: '#777', fontSize: 10 },
 });

@@ -6,11 +6,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Glass } from '@/components/schoolsafe/glass';
 import { Typography } from '@/constants/theme';
 import { useAuth } from '@/context/auth-context';
+import { useAlerts } from '@/context/alerts-context';
 
 type HeaderProps = { compact?: boolean };
 
 export default function Header({ compact: _compact = true }: HeaderProps) {
   const { session, signOut } = useAuth();
+  const { telemetryStatus } = useAlerts();
+  const telemetryColor = telemetryStatus === 'online' ? '#22C55E' : telemetryStatus === 'connecting' ? '#EAB308' : '#777';
+  const telemetryLabel = telemetryStatus === 'online' ? 'ONLINE' : telemetryStatus === 'connecting' ? 'CONECTANDO' : telemetryStatus === 'unconfigured' ? 'SEM API' : 'OFFLINE';
   const router = useRouter();
 
   return (
@@ -27,7 +31,7 @@ export default function Header({ compact: _compact = true }: HeaderProps) {
             </View>
           </Pressable>
           <View style={styles.right}>
-            <View style={styles.onlinePill}><View style={styles.dot} /><Text style={styles.onlineText}>ONLINE</Text></View>
+            <View style={styles.onlinePill}><View style={[styles.dot, { backgroundColor: telemetryColor }]} /><Text style={[styles.onlineText, { color: telemetryColor }]}>{telemetryLabel}</Text></View>
             {session && <Pressable onPress={() => { void signOut(); }} hitSlop={10} accessibilityRole="button" accessibilityLabel="Sair da conta" style={styles.logoutBtn}>
               <Ionicons name="log-out-outline" size={18} color="#a0a0a0" />
             </Pressable>}

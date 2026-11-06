@@ -9,17 +9,15 @@ export default function TabLayout() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
   const segments = useSegments();
-  // Development/demo access is limited to local Expo development builds.
-  const developmentDemoMode = __DEV__;
 
   useEffect(() => {
-    if (loading && !developmentDemoMode) return;
-    if (!isAuthenticated && !developmentDemoMode) {
+    if (loading) return;
+    if (!isAuthenticated) {
       router.replace('/login' as any);
     }
-  }, [isAuthenticated, loading, segments, router, developmentDemoMode]);
+  }, [isAuthenticated, loading, segments, router]);
 
-  if (loading && !developmentDemoMode) {
+  if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1f1f1f' }}>
         <ActivityIndicator color="#a0a0a0" />
@@ -27,7 +25,7 @@ export default function TabLayout() {
     );
   }
 
-  if (!isAuthenticated && !developmentDemoMode) {
+  if (!isAuthenticated) {
     return (
       <View style={{ flex: 1, backgroundColor: '#1f1f1f', alignItems: 'center', justifyContent: 'center' }}>
         <ActivityIndicator color="#a0a0a0" />

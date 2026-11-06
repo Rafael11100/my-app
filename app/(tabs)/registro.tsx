@@ -4,11 +4,10 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import Header from '@/components/schoolsafe/header';
 import { Glass } from '@/components/schoolsafe/glass';
 import { useSensorSheet, type SensorOriginRect } from '@/components/schoolsafe/sensor-sheet';
-import { useAlerts, type SensorRecord } from '@/context/alerts-context';
-import type { Sensor } from '@/context/alerts-context';
+import { useAlerts, type Sensor, type SensorRecord } from '@/context/alerts-context';
 
 export default function RegistroScreen() {
-  const { history, clearHistory, removeRecord, sensors } = useAlerts();
+  const { history, sensors, telemetryStatus, telemetryError, lastSyncAt } = useAlerts();
   const { openSensor } = useSensorSheet();
   const targets = useRef<Record<string, View | null>>({});
   const active = sensors.filter((sensor) => sensor.active).sort((a, b) => (a.kind === b.kind ? (a.startedAt ?? '').localeCompare(b.startedAt ?? '') : a.kind === 'smoke' ? -1 : 1));
@@ -20,8 +19,8 @@ export default function RegistroScreen() {
   }, [openSensor]);
 
   const renderItem = useCallback(({ item }: { item: SensorRecord }) => (
-    <HistoryRow record={item} sensor={sensors.find((sensor) => sensor.id === item.sensorId) ?? null} onDelete={() => removeRecord(item.id)} />
-  ), [removeRecord, sensors]);
+    <HistoryRow record={item} sensor={sensors.find((sensor) => sensor.id === item.sensorId) ?? null} />
+  ), [sensors]);
 
   return <View style={styles.screen}>
     <Header />
@@ -50,14 +49,14 @@ export default function RegistroScreen() {
           })}</View>
         </View>}
         <View style={styles.historyHeading}>
-          <View><Text style={styles.sectionTitle}>Histórico de eventos</Text><Text style={styles.sectionSub}>{history.length} registros salvos neste dispositivo</Text></View>
-          {history.length > 0 && <Pressable onPress={clearHistory} style={styles.clearButton} accessibilityRole="button" accessibilityLabel="Limpar histórico"><Ionicons name="trash-outline" size={14} color="#a0a0a0" /><Text style={styles.clearText}>Limpar</Text></Pressable>}
+          <View><Text style={styles.sectionTitle}>Histórico de eventos</Text><Text style={styles.sectionSub}>{history.length} eventos recebidos do JazzSecurity · {telemetryStatus === 'online' ? (lastSyncAt ? 'atualizado ' + new Date(lastSyncAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'sincronizado') : 'aguardando conexão'}</Text></View>
+          
         </View>
       </View>}
       ListEmptyComponent={<Glass intensity={42} borderRadius={20} style={styles.empty}>
         <View style={styles.emptyIcon}><Ionicons name="document-text-outline" size={24} color="#a0a0a0" /></View>
         <Text style={styles.emptyTitle}>Nenhum evento registrado</Text>
-        <Text style={styles.emptySub}>Quando um sensor for ativado, o evento aparecerá aqui.</Text>
+        <Text style={styles.emptySub}>{telemetryError ?? 'Os eventos registrados no SQLite do JazzSecurity aparecerão aqui.'}</Text>
       </Glass>}
       ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
       ListFooterComponent={<Text style={styles.footer}>O registro é mantido localmente neste dispositivo.</Text>}
@@ -65,7 +64,7 @@ export default function RegistroScreen() {
   </View>;
 }
 
-function HistoryRow({ record, sensor, onDelete }: { record: SensorRecord; sensor: Sensor | null; onDelete: () => void }) {
+function HistoryRow({ record, sensor }: { record: SensorRecord; sensor: Sensor | null }) {
   const { openSensor } = useSensorSheet();
   const viewRef = useRef<View>(null);
   const smoke = record.kind === 'smoke';
@@ -80,10 +79,9 @@ function HistoryRow({ record, sensor, onDelete }: { record: SensorRecord; sensor
   return <Glass elevated intensity={38} borderRadius={17} style={styles.historyRow}>
     <Pressable ref={viewRef} onPress={open} style={styles.historyMain} accessibilityRole="button" accessibilityLabel={`${smoke ? 'Fumaça' : 'Movimento'} em ${record.location.trim() || 'Área sem nome'} às ${record.startedAt}`}>
       <View style={[styles.historyIcon, { backgroundColor: accent + '18' }]}><Ionicons name={smoke ? 'flame-outline' : 'walk-outline'} size={17} color={accent} /></View>
-      <View style={styles.rowText}><Text style={styles.rowTitle} numberOfLines={1}>{record.location.trim() || 'Área sem nome'}</Text><Text style={styles.rowSub} numberOfLines={1}>{sensor?.label ?? record.sensorId} · {smoke ? 'Fumaça' : 'Movimento'}</Text></View>
+      <View style={styles.rowText}><Text style={styles.rowTitle} numberOfLines={1}>{record.location.trim() || 'Área sem nome'}</Text><Text style={styles.rowSub} numberOfLines={1}>{sensor?.label ?? record.sensorId} · {record.description ?? (smoke ? 'Fumaça' : 'Movimento')}</Text></View>
       <Text style={styles.time}>{record.startedAt}</Text>
     </Pressable>
-    <Pressable onPress={onDelete} hitSlop={8} style={styles.deleteButton} accessibilityRole="button" accessibilityLabel={`Remover evento ${record.id}`}><Ionicons name="close-outline" size={16} color="#888" /></Pressable>
   </Glass>;
 }
 

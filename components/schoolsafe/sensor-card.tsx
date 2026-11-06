@@ -7,14 +7,13 @@ import { Glass } from '@/components/schoolsafe/glass';
 import { useSensorSheet, type SensorOriginRect } from '@/components/schoolsafe/sensor-sheet';
 import { AREA_PHOTOS } from '@/constants/area-photos';
 import { Typography } from '@/constants/theme';
-import { useAlerts, type Sensor } from '@/context/alerts-context';
+import type { Sensor } from '@/context/alerts-context';
 
 function SensorCardComponent({ sensor, index = 0 }: { sensor: Sensor; index?: number }) {
   const reducedMotion = useReducedMotion();
   const entering = reducedMotion ? FadeIn.duration(150) : FadeInDown.delay(Math.min(index, 8) * 45).duration(420);
   const viewRef = useRef<View>(null);
   const { openSensor } = useSensorSheet();
-  const { activateSensor, deactivateSensor } = useAlerts();
   const smoke = sensor.kind === 'smoke';
   const accent = smoke ? '#EF4444' : '#3B82F6';
   const photo = sensor.areaId ? AREA_PHOTOS[sensor.areaId] : undefined;
@@ -38,17 +37,21 @@ function SensorCardComponent({ sensor, index = 0 }: { sensor: Sensor; index?: nu
           <Text style={styles.kicker} numberOfLines={1}>{smoke ? 'SENSOR DE FUMAÇA' : 'SENSOR DE MOVIMENTO'}</Text>
           <Text style={styles.name} numberOfLines={1}>{locationLabel}</Text>
           <Text style={styles.location} numberOfLines={1}>{sensor.label}</Text>
-          <View style={[styles.status, { backgroundColor: sensor.active ? accent + '18' : 'rgba(160,160,160,0.10)', borderColor: sensor.active ? accent + '55' : 'rgba(255,255,255,0.10)' }]}>
-            <View style={[styles.dot, { backgroundColor: sensor.active ? accent : '#a0a0a0' }]} />
-            <Text style={[styles.statusText, { color: sensor.active ? accent : '#a0a0a0' }]}>{sensor.active ? (smoke ? 'ALERTA' : 'DETECTADO') : 'NORMAL'}</Text>
+          <View style={[styles.status, { backgroundColor: sensor.status === 'offline' ? 'rgba(160,160,160,0.10)' : sensor.active ? accent + '18' : 'rgba(160,160,160,0.10)', borderColor: sensor.status === 'offline' ? 'rgba(160,160,160,0.22)' : sensor.active ? accent + '55' : 'rgba(255,255,255,0.10)' }]}>
+            <View style={[styles.dot, { backgroundColor: sensor.status === 'offline' || sensor.status === 'stale' ? '#999' : sensor.active ? accent : '#a0a0a0' }]} />
+            <Text style={[styles.statusText, { color: sensor.status === 'offline' ? '#999' : sensor.active ? accent : '#a0a0a0' }]}>
+              {sensor.status === 'offline' ? 'SEM SINAL' : sensor.status === 'stale' ? 'SEM ATUALIZAÇÃO' : sensor.active ? (smoke ? 'ALERTA' : 'DETECTADO') : 'NORMAL'}
+            </Text>
           </View>
-          <Text style={styles.event} numberOfLines={1}>Último evento · {sensor.lastEventAt ?? '—'}</Text>
+          <Text style={styles.event} numberOfLines={1}>
+            {smoke && typeof sensor.value === 'number' ? 'Leitura MQ-2 · ' + sensor.value.toFixed(0) + ' · ' : 'Último evento · '}{sensor.lastEventAt ?? '—'}
+          </Text>
         </View>
         <Ionicons name="chevron-forward-outline" size={16} color="#777" />
       </Pressable>
       <View style={styles.actions}>
-        <Text style={styles.areaId}>{sensor.areaId ? (sensor.location.trim() ? 'ÁREA CADASTRADA' : 'ÁREA SEM NOME') : 'ÁREA NÃO CADASTRADA'}</Text>
-        <Pressable onPress={() => sensor.active ? deactivateSensor(sensor.id) : activateSensor(sensor.id)} style={[styles.toggle, sensor.active && styles.toggleActive]} accessibilityRole="button" accessibilityLabel={sensor.active ? `Desativar ${sensor.label}` : `Ativar ${sensor.label}`}><Ionicons name={sensor.active ? 'power-outline' : 'flash-outline'} size={13} color={sensor.active ? '#F2F2F2' : '#1f1f1f'} /><Text style={[styles.toggleText, sensor.active && styles.toggleTextActive]}>{sensor.active ? 'Desativar' : 'Ativar'}</Text></Pressable>
+        <Text style={styles.areaId}>{sensor.areaId ? 'ÁREA ASSOCIADA' : 'ÁREA NÃO CADASTRADA'}</Text>
+        <View style={styles.liveTag}><Ionicons name="radio-outline" size={12} color={sensor.status === 'offline' ? '#777' : '#a0a0a0'} /><Text style={styles.liveText}>{sensor.status === 'offline' ? 'SEM SINAL' : sensor.status === 'stale' ? 'DADO ANTIGO' : 'DADOS AO VIVO'}</Text></View>
       </View>
     </Glass>
   </Animated.View>;
@@ -73,8 +76,6 @@ const styles = StyleSheet.create({
   event: { color: '#777', fontSize: 9, marginTop: 2 },
   actions: { height: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.07)', paddingTop: 10, gap: 10 },
   areaId: { color: '#666', fontFamily: 'monospace', fontSize: 8, letterSpacing: 0.5, flex: 1 },
-  toggle: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, backgroundColor: '#F2F2F2', paddingHorizontal: 12, height: 34 },
-  toggleActive: { backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.12)' },
-  toggleText: { color: '#1f1f1f', fontSize: 10, fontWeight: '800', fontFamily: Typography.bold },
-  toggleTextActive: { color: '#F2F2F2' },
+  liveTag: { flexDirection: 'row', alignItems: 'center', gap: 5, borderRadius: 999, paddingHorizontal: 9, height: 30, borderWidth: 1, borderColor: 'rgba(255,255,255,0.09)', backgroundColor: 'rgba(255,255,255,0.025)' },
+  liveText: { color: '#999', fontSize: 8, fontWeight: '800', letterSpacing: 0.4 },
 });

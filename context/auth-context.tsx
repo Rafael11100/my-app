@@ -2,11 +2,15 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
-const STORAGE_KEY = '@seguranca-escolar/session';
+const STORAGE_KEY = '@seguranca-escolar/jazzsecurity-session.v1';
+const JAZZSECURITY_URL = (process.env.EXPO_PUBLIC_JAZZSECURITY_URL ?? '').trim().replace(/\/+$/, '');
+const AUTH_TIMEOUT_MS = 12_000;
 
 export type Session = {
   token: string;
   username: string;
+  name: string;
+  email: string;
   role: 'admin';
   issuedAt: number;
   expiresAt: number;
@@ -16,26 +20,29 @@ type AuthContextType = {
   session: Session | null;
   loading: boolean;
   isAuthenticated: boolean;
-  signIn: (token: string) => Promise<void>;
+  signIn: (login: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   backendConfigured: boolean;
 };
 
-type AuthResponse = {
-  token?: string;
-  expiresAt?: number;
-  username?: string;
-  role?: string;
-  error?: string;
-  valid?: boolean;
-  issuedAt?: number;
+type LoginResponse = {
+  token?: unknown;
+  expiresAt?: unknown;
+  user?: {
+    id?: unknown;
+    username?: unknown;
+    name?: unknown;
+    email?: unknown;
+    role?: unknown;
+  };
+  error?: string | { message?: unknown };
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 async function safeGet(key: string): Promise<string | null> {
   try {
-    if (Platform.OS === 'web') return typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+    if (Platform.OS === 'web') return typeof sessionStorage !== 'undefined' ? sessionStorage.getItem(key) : null;
     return await SecureStore.getItemAsync(key);
   } catch {
     return null;
@@ -45,7 +52,7 @@ async function safeGet(key: string): Promise<string | null> {
 async function safeSet(key: string, value: string): Promise<void> {
   try {
     if (Platform.OS === 'web') {
-      if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
+      if (typeof sessionStorage !== 'undefined') sessionStorage.setItem(key, value);
       return;
     }
     await SecureStore.setItemAsync(key, value);
@@ -57,7 +64,7 @@ async function safeSet(key: string, value: string): Promise<void> {
 async function safeDelete(key: string): Promise<void> {
   try {
     if (Platform.OS === 'web') {
-      if (typeof localStorage !== 'undefined') localStorage.removeItem(key);
+      if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem(key);
       return;
     }
     await SecureStore.deleteItemAsync(key);
@@ -66,11 +73,20 @@ async function safeDelete(key: string): Promise<void> {
   }
 }
 
+function parseErrorMessage(payload: LoginResponse, status: number): string {
+  if (typeof payload.error === 'string' && payload.error.trim()) return payload.error;
+  if (typeof payload.error === 'object' && payload.error !== null && typeof payload.error.message === 'string') {
+    return payload.error.message;
+  }
+  if (status === 401) return 'Usuário ou senha incorretos.';
+  if (status === 429) return 'Muitas tentativas de login. Aguarde antes de tentar novamente.';
+  return 'Não foi possível concluir a autenticação. Tente novamente.';
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const backendUrl = (process.env.EXPO_PUBLIC_AUTH_URL ?? '').trim().replace(/\/$/, '');
-  const backendConfigured = backendUrl.length > 0;
+  const backendConfigured = JAZZSECURITY_URL.length > 0;
 
   useEffect(() => {
     let mounted = true;
@@ -81,42 +97,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!raw) return;
 
         const stored = JSON.parse(raw) as Partial<Session>;
-        if (!backendConfigured || typeof stored.token !== 'string' || !stored.token) {
+        const valid =
+          backendConfigured &&
+          typeof stored.token === 'string' &&
+          stored.token.length > 20 &&
+          typeof stored.username === 'string' &&
+          typeof stored.name === 'string' &&
+          typeof stored.email === 'string' &&
+          stored.role === 'admin' &&
+          typeof stored.expiresAt === 'number' &&
+          Number.isFinite(stored.expiresAt) &&
+          stored.expiresAt > Date.now();
+
+        if (!valid) {
           await safeDelete(STORAGE_KEY);
           return;
         }
 
-        // Nunca confiar em dados de sessão gravados no dispositivo sem validar a assinatura no servidor.
-        const response = await fetch(backendUrl + '/auth/verify', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: stored.token }),
-        });
-        if (!response.ok) {
-          await safeDelete(STORAGE_KEY);
-          return;
-        }
-
-        const data = await response.json() as AuthResponse;
-        if (
-          data.valid !== true ||
-          data.role !== 'admin' ||
-          typeof data.expiresAt !== 'number' ||
-          data.expiresAt <= Date.now()
-        ) {
-          await safeDelete(STORAGE_KEY);
-          return;
-        }
-
-        const verified: Session = {
-          token: stored.token,
-          username: data.username ?? 'administrador',
-          role: 'admin',
-          issuedAt: typeof data.issuedAt === 'number' ? data.issuedAt : Date.now(),
-          expiresAt: data.expiresAt,
-        };
-        if (mounted) setSession(verified);
-        await safeSet(STORAGE_KEY, JSON.stringify(verified));
+        if (mounted) setSession(stored as Session);
       } catch {
         await safeDelete(STORAGE_KEY);
       } finally {
@@ -127,46 +125,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, [backendConfigured, backendUrl]);
+  }, [backendConfigured]);
 
-  const signIn = useCallback(async (token: string) => {
-    const submittedToken = token.trim();
-    if (!submittedToken) throw new Error('Informe um token de acesso.');
+  const signIn = useCallback(async (login: string, password: string) => {
+    const normalizedLogin = login.trim();
+    if (!normalizedLogin || !password) throw new Error('Informe o usuário ou e-mail e a senha.');
+    if (normalizedLogin.length > 100 || password.length > 128) throw new Error('Confira o tamanho dos campos informados.');
     if (!backendConfigured) {
-      throw new Error('O servidor de autenticação não está configurado. Defina EXPO_PUBLIC_AUTH_URL.');
+      throw new Error('O endereço do JazzSecurity não está configurado. Defina EXPO_PUBLIC_JAZZSECURITY_URL.');
     }
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), AUTH_TIMEOUT_MS);
 
     let response: Response;
     try {
-      response = await fetch(backendUrl + '/auth/login', {
+      response = await fetch(JAZZSECURITY_URL + '/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: submittedToken }),
+        headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login: normalizedLogin, password }),
+        signal: controller.signal,
       });
-    } catch {
-      throw new Error('Não foi possível conectar ao servidor. Confira a URL e a conexão.');
+    } catch (cause) {
+      if (cause instanceof Error && cause.name === 'AbortError') {
+        throw new Error('A autenticação excedeu o limite de 12 segundos.');
+      }
+      throw new Error('Não foi possível conectar ao JazzSecurity. Confira a URL e a conexão.');
+    } finally {
+      clearTimeout(timeoutId);
     }
 
-    const data = await response.json().catch(() => ({})) as AuthResponse;
-    if (response.status === 401) throw new Error('Token inválido.');
-    if (!response.ok) throw new Error(data.error ?? 'Não foi possível concluir a autenticação.');
-    if (!data.token || data.role !== 'admin' || typeof data.expiresAt !== 'number') {
-      throw new Error('Resposta inválida do servidor de autenticação.');
+    const payload = await response.json().catch(() => ({})) as LoginResponse;
+    if (!response.ok) throw new Error(parseErrorMessage(payload, response.status));
+
+    const user = payload.user;
+    const expiresAt = typeof payload.expiresAt === 'string' ? Date.parse(payload.expiresAt) : Number.NaN;
+    if (
+      typeof payload.token !== 'string' ||
+      payload.token.length < 20 ||
+      !user ||
+      (user.id !== 1 && user.id !== 2) ||
+      typeof user.username !== 'string' ||
+      typeof user.name !== 'string' ||
+      typeof user.email !== 'string' ||
+      user.role !== 'admin' ||
+      !Number.isFinite(expiresAt) ||
+      expiresAt <= Date.now()
+    ) {
+      throw new Error('O JazzSecurity retornou uma sessão administrativa inválida.');
     }
 
     const now = Date.now();
     const next: Session = {
-      token: data.token,
-      username: data.username ?? 'administrador',
+      token: payload.token,
+      username: user.username,
+      name: user.name,
+      email: user.email,
       role: 'admin',
       issuedAt: now,
-      expiresAt: data.expiresAt,
+      expiresAt,
     };
-    if (next.expiresAt <= now) throw new Error('O servidor retornou uma sessão expirada.');
 
     await safeSet(STORAGE_KEY, JSON.stringify(next));
     setSession(next);
-  }, [backendConfigured, backendUrl]);
+  }, [backendConfigured]);
 
   useEffect(() => {
     if (!session) return;
@@ -196,6 +218,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 export function useAuth(): AuthContextType {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) throw new Error('useAuth must be used within an AuthProvider');
   return ctx;
 }
