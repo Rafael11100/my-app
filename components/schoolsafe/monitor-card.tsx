@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useRef, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type PressableInstance } from 'react-native';
 import { Glass } from '@/components/schoolsafe/glass';
 import type { Sensor, TelemetryStatus } from '@/context/alerts-context';
 import type { SensorOriginRect } from '@/components/schoolsafe/sensor-sheet';
@@ -11,7 +11,7 @@ type Props = { sensors: Sensor[]; onSelect: (sensor: Sensor, originRect?: Sensor
 
 export default function MonitorCard({ sensors, onSelect, telemetryStatus, telemetryError, lastSyncAt, onRefresh }: Props) {
   const [now, setNow] = useState(new Date());
-  const alertRefs = useRef<Record<string, View | null>>({});
+  const alertRefs = useRef<Record<string, PressableInstance | null>>({});
   useEffect(() => {
     const timer = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(timer);

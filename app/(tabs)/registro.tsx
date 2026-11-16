@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useRef } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View, type PressableInstance } from 'react-native';
 import Header from '@/components/schoolsafe/header';
 import { Glass } from '@/components/schoolsafe/glass';
 import { useSensorSheet, type SensorOriginRect } from '@/components/schoolsafe/sensor-sheet';
@@ -9,10 +9,10 @@ import { useAlerts, type Sensor, type SensorRecord } from '@/context/alerts-cont
 export default function RegistroScreen() {
   const { history, sensors, telemetryStatus, telemetryError, lastSyncAt } = useAlerts();
   const { openSensor } = useSensorSheet();
-  const targets = useRef<Record<string, View | null>>({});
+  const targets = useRef<Record<string, PressableInstance | null>>({});
   const active = sensors.filter((sensor) => sensor.active).sort((a, b) => (a.kind === b.kind ? (a.startedAt ?? '').localeCompare(b.startedAt ?? '') : a.kind === 'smoke' ? -1 : 1));
 
-  const showSensor = useCallback((sensor: Sensor, target: View | null) => {
+  const showSensor = useCallback((sensor: Sensor, target: PressableInstance | null) => {
     const fallback: SensorOriginRect = { x: 24, y: 160, width: 48, height: 48 };
     if (!target) { openSensor(sensor.id, fallback); return; }
     target.measureInWindow((x, y, width, height) => openSensor(sensor.id, { x, y, width, height }));
@@ -66,7 +66,7 @@ export default function RegistroScreen() {
 
 function HistoryRow({ record, sensor }: { record: SensorRecord; sensor: Sensor | null }) {
   const { openSensor } = useSensorSheet();
-  const viewRef = useRef<View>(null);
+  const viewRef = useRef<PressableInstance | null>(null);
   const smoke = record.kind === 'smoke';
   const accent = smoke ? '#EF4444' : '#3B82F6';
   const open = () => {

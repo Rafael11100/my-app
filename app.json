@@ -7,7 +7,6 @@
     "icon": "./assets/images/seguranca-escolar.png",
     "scheme": "segurancaescolar",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
@@ -16,8 +15,8 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/seguranca-escolar.png"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rafael11100.segurancaescolar"
     },
     "web": {
       "output": "static",

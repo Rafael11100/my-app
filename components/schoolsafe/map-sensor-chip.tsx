@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useEffect } from 'react';
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type ViewStyle, type PressableInstance } from 'react-native';
 import Animated, { cancelAnimation, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
 import type { Sensor } from '@/context/alerts-context';
 
@@ -11,7 +11,7 @@ type Props = {
   size: { width: number; height: number };
   focused: boolean;
   onPress: () => void;
-  onRef: (node: View | null) => void;
+  onRef: (node: PressableInstance | null) => void;
 };
 
 function MapSensorChipComponent({ sensor, size, focused, onPress, onRef }: Props) {
@@ -46,7 +46,7 @@ function MapSensorChipComponent({ sensor, size, focused, onPress, onRef }: Props
   return <View style={[styles.wrapper, size as ViewStyle]}>
     {sensor.active && focused && !reducedMotion && <Animated.View pointerEvents="none" style={[styles.ripple, { borderColor: accent }, rippleStyle]} />}
     <AnimatedPressable
-    ref={(node: unknown) => onRef(node as View | null)}
+    ref={(node: unknown) => onRef(node as PressableInstance | null)}
     onPress={onPress}
     style={[
       styles.chip,

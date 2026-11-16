@@ -1,6 +1,6 @@
 # Segurança Escolar
 
-Aplicativo de monitoramento escolar desenvolvido com Expo Router e React Native.
+Aplicativo de monitoramento escolar desenvolvido com Expo SDK 58, Expo Router e React Native 0.88.
 
 ## Arquitetura
 
@@ -33,6 +33,8 @@ Para usar o app web, inclua a origem do Expo Web na variável CORS_ORIGINS do Ja
 
 ```bash
 npm install
+npx expo install --fix
+npx expo-doctor
 npx expo start --clear
 ```
 
@@ -46,3 +48,32 @@ npx expo lint
 ## Serviço de autenticação legado
 
 A pasta server/ e render.yaml contêm o antigo serviço independente baseado em tokens. A integração atual do aplicativo usa o JazzSecurity diretamente; não configure as antigas variáveis ADMIN_TOKEN_1 e ADMIN_TOKEN_2 para este fluxo.
+
+## Ambiente de desenvolvimento
+
+O projeto utiliza Expo SDK 58, React Native 0.88.1, React 19.3, Reanimated 4.7.1 e Worklets 0.13.0. O Expo SDK 58 requer Node.js 22.13 ou superior. Após atualizar a branch, instale as dependências com `npm ci` e execute `npx expo-doctor` para conferir o ambiente.
+
+Para reiniciar o Metro limpando o cache, execute `npx expo start --clear`. Como a migração atualiza bibliotecas nativas, gere e instale um novo APK ou development build; um APK antigo continua contendo as versões nativas anteriores.
+
+## Gerar o aplicativo Android
+
+Para gerar um APK instalável diretamente em celulares Android, entre na conta Expo e configure o projeto EAS na primeira utilização:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest build:configure
+```
+
+Depois, na raiz do projeto, execute:
+
+```bash
+npm run build:android:apk
+```
+
+O perfil `preview` gera um arquivo **.apk**, adequado para instalar diretamente em dispositivos Android. Para gerar um **.aab** destinado à publicação na Google Play, execute:
+
+```bash
+npm run build:android:aab
+```
+
+Os builds são executados na infraestrutura do EAS Build e exigem uma conta Expo. Na primeira execução, o EAS pode pedir para vincular ou criar o projeto na conta.
