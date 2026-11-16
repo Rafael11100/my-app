@@ -1,6 +1,6 @@
 # Segurança Escolar
 
-Aplicativo de monitoramento escolar desenvolvido com Expo Router e React Native.
+Aplicativo de monitoramento escolar desenvolvido com Expo SDK 58, Expo Router e React Native 0.88.
 
 ## Arquitetura
 
@@ -33,6 +33,8 @@ Para usar o app web, inclua a origem do Expo Web na variável CORS_ORIGINS do Ja
 
 ```bash
 npm install
+npx expo install --fix
+npx expo-doctor
 npx expo start --clear
 ```
 
@@ -46,6 +48,12 @@ npx expo lint
 ## Serviço de autenticação legado
 
 A pasta server/ e render.yaml contêm o antigo serviço independente baseado em tokens. A integração atual do aplicativo usa o JazzSecurity diretamente; não configure as antigas variáveis ADMIN_TOKEN_1 e ADMIN_TOKEN_2 para este fluxo.
+
+## Ambiente de desenvolvimento
+
+O projeto utiliza Expo SDK 58, React Native 0.88.1, React 19.3 e requer Node.js 22.13 ou superior. Após atualizar a branch ou instalar dependências, execute `npm install`, `npx expo install --fix` e `npx expo-doctor` para conferir se o ambiente está alinhado ao SDK.
+
+Para reiniciar o Metro limpando o cache, execute `npx expo start --clear`.
 
 ## Gerar o aplicativo Android
 
