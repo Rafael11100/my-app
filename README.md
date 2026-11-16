@@ -46,3 +46,26 @@ npx expo lint
 ## Serviço de autenticação legado
 
 A pasta server/ e render.yaml contêm o antigo serviço independente baseado em tokens. A integração atual do aplicativo usa o JazzSecurity diretamente; não configure as antigas variáveis ADMIN_TOKEN_1 e ADMIN_TOKEN_2 para este fluxo.
+
+## Gerar o aplicativo Android
+
+Para gerar um APK instalável diretamente em celulares Android, entre na conta Expo e configure o projeto EAS na primeira utilização:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest build:configure
+```
+
+Depois, na raiz do projeto, execute:
+
+```bash
+npm run build:android:apk
+```
+
+O perfil `preview` gera um arquivo **.apk**, adequado para instalar diretamente em dispositivos Android. Para gerar um **.aab** destinado à publicação na Google Play, execute:
+
+```bash
+npm run build:android:aab
+```
+
+Os builds são executados na infraestrutura do EAS Build e exigem uma conta Expo. Na primeira execução, o EAS pode pedir para vincular ou criar o projeto na conta.
