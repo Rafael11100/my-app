@@ -17,7 +17,8 @@
         "foregroundImage": "./assets/images/seguranca-escolar.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.rafael11100.segurancaescolar"
     },
     "web": {
       "output": "static",
