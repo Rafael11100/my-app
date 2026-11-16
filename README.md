@@ -22,13 +22,11 @@ Para desenvolvimento com uma API executada localmente, substitua `EXPO_PUBLIC_JA
 
 A URL é pública e pode estar no bundle; não coloque tokens, senhas ou segredos em variáveis EXPO_PUBLIC_*.
 
-A URL é pública e pode estar no bundle; não coloque tokens, senhas ou segredos em variáveis EXPO_PUBLIC_*.
-
 No arquivo .env do JazzSecurity, configure JWT_SECRET, ADMIN_OPERACAO_PASSWORD e ADMIN_COORDENACAO_PASSWORD, além das variáveis já exigidas pelo backend. As duas senhas devem ser diferentes e ter ao menos 12 caracteres. O backend provisiona as duas contas no SQLite e armazena hashes de senha.
 
 Para usar o app web, inclua a origem do Expo Web na variável CORS_ORIGINS do JazzSecurity (além das origens já usadas pelo New-Security), por exemplo http://localhost:8081. Apps nativos não aplicam CORS como o navegador.
 
-> O login fixo do JazzSecurity já está na branch principal. Confirme que a instância usada por este app está implantada com essa versão; o endpoint POST /auth/login e as rotas de telemetria protegidas precisam estar ativos.
+> API padrão do aplicativo: `https://jazz-security.vercel.app`. A instância publicada precisa disponibilizar `POST /auth/login` e as rotas protegidas `GET /sensores` e `GET /eventos`, conforme o contrato consumido pelo app.
 
 ## Executar
 
