@@ -16,7 +16,6 @@
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/seguranca-escolar.png"
       },
-      "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.rafael11100.segurancaescolar"
     },
