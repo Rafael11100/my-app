@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useRef } from 'react';
-import { Dimensions, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Dimensions, Pressable, StyleSheet, Text, View, useWindowDimensions, type PressableInstance } from 'react-native';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import { AREAS, type AreaId } from '@/constants/areas';
 import { useSensorSheet, type SensorOriginRect } from '@/components/schoolsafe/sensor-sheet';
@@ -13,7 +13,7 @@ const MAP_VIEW = { x: 60, y: 22, width: 324, height: 382 };
 export default function SchoolMap({ sensors, focused = true }: Props) {
   const { width: screenWidth } = useWindowDimensions();
   const { openSensor } = useSensorSheet();
-  const targets = useRef<Record<string, View | null>>({});
+  const targets = useRef<Record<string, PressableInstance | null>>({});
   const mapWidth = Math.min(screenWidth - 56, 360);
   const scale = mapWidth / MAP_VIEW.width;
   const mapHeight = MAP_VIEW.height * scale;

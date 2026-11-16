@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { memo, useCallback, useRef } from 'react';
 import Animated, { FadeIn, FadeInDown, useReducedMotion } from 'react-native-reanimated';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewInstance } from 'react-native';
 import { Image } from 'expo-image';
 import { Glass } from '@/components/schoolsafe/glass';
 import { useSensorSheet, type SensorOriginRect } from '@/components/schoolsafe/sensor-sheet';
@@ -12,7 +12,7 @@ import type { Sensor } from '@/context/alerts-context';
 function SensorCardComponent({ sensor, index = 0 }: { sensor: Sensor; index?: number }) {
   const reducedMotion = useReducedMotion();
   const entering = reducedMotion ? FadeIn.duration(150) : FadeInDown.delay(Math.min(index, 8) * 45).duration(420);
-  const viewRef = useRef<View>(null);
+  const viewRef = useRef<ViewInstance | null>(null);
   const { openSensor } = useSensorSheet();
   const smoke = sensor.kind === 'smoke';
   const accent = smoke ? '#EF4444' : '#3B82F6';
