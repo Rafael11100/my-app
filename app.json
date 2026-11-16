@@ -7,7 +7,6 @@
     "icon": "./assets/images/seguranca-escolar.png",
     "scheme": "segurancaescolar",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true
     },
