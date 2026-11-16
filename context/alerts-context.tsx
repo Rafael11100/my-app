@@ -5,7 +5,7 @@ import { SENSOR_REGISTRY } from '@/constants/sensor-registry';
 import { useAuth } from '@/context/auth-context';
 import { formatTime } from '@/utils/date';
 
-const JAZZSECURITY_URL = (process.env.EXPO_PUBLIC_JAZZSECURITY_URL ?? '').trim().replace(/\/+$/, '');
+const JAZZSECURITY_URL = (process.env.EXPO_PUBLIC_JAZZSECURITY_URL ?? 'https://jazz-security.vercel.app').trim().replace(/\/+$/, '');
 const REFRESH_INTERVAL_MS = 10_000;
 const REQUEST_TIMEOUT_MS = 8_000;
 const HISTORY_LIMIT = 100;
