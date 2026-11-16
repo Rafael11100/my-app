@@ -13,13 +13,14 @@ O Projeto Éden / Adan-Stella não participa do login nem da telemetria deste ap
 
 ## Configuração
 
-Copie .env.example para .env.local e configure EXPO_PUBLIC_JAZZSECURITY_URL com a origem da API JazzSecurity.
+Copie .env.example para .env.local. O endereço padrão de produção já está configurado como `https://jazz-security.vercel.app`, então o aplicativo usa essa API no login e na consulta dos sensores/eventos sem precisar configurar outra URL.
 
-Exemplos para desenvolvimento:
+Para desenvolvimento com uma API executada localmente, substitua `EXPO_PUBLIC_JAZZSECURITY_URL` no .env.local pelo endereço correto:
 - Android Emulator: http://10.0.2.2:3001
-- iOS Simulator ou app web na mesma máquina: http://localhost:3001
-- Celular físico: use o IP da máquina que hospeda o JazzSecurity, por exemplo http://192.168.1.20:3001.
-- Produção: use a URL HTTPS publicada da API.
+- iOS Simulator ou Expo Web na mesma máquina: http://localhost:3001
+- Celular físico: use o IP da máquina que hospeda a API, por exemplo http://192.168.1.20:3001.
+
+A URL é pública e pode estar no bundle; não coloque tokens, senhas ou segredos em variáveis EXPO_PUBLIC_*.
 
 A URL é pública e pode estar no bundle; não coloque tokens, senhas ou segredos em variáveis EXPO_PUBLIC_*.
 
