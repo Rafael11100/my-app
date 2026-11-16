@@ -1,8 +1,10 @@
-import type { ImageSourcePropType } from 'react-native';
+import type { ImageProps } from 'expo-image';
 import type { AreaId } from '@/constants/areas';
 
 // Adicione fotos estáticas com require() para que o Metro consiga incluí-las no bundle.
-export const AREA_PHOTOS: Partial<Record<AreaId, ImageSourcePropType>> = {
+type AreaImageSource = NonNullable<ImageProps['source']>;
+
+export const AREA_PHOTOS: Partial<Record<AreaId, AreaImageSource>> = {
   // MAKER: require('@/assets/areas/maker.jpg'),
   // CORREDOR: require('@/assets/areas/corredor.jpg'),
   // GREMIO: require('@/assets/areas/gremio.jpg'),
