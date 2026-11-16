@@ -15,43 +15,29 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
-    name: TypeScript, changed auth/UI lint, and auth API syntax
+    name: Expo SDK 58, TypeScript, lint, and auth API syntax
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.ref || github.ref }}
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - name: Install and align Expo SDK dependencies
-        run: |
-          npm install
-          npx expo install --fix
-      - name: Persist aligned SDK dependency lockfile
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          if ! git diff --quiet -- package.json package-lock.json; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add package.json package-lock.json
-            git commit -m "chore: align Expo SDK 58 dependency lockfile"
-            git push origin "HEAD:${GITHUB_HEAD_REF}"
-          fi
+      - name: Install dependencies
+        run: npm ci
       - name: Expo Doctor
         run: npx expo-doctor@latest
       - name: TypeScript check
         run: npx tsc --noEmit
-      - name: Lint changed authentication and branding screens
-        run: npx eslint app/login.tsx context/auth-context.tsx context/alerts-context.tsx components/schoolsafe/header.tsx components/schoolsafe/sensor-card.tsx components/schoolsafe/sensor-screen.tsx components/schoolsafe/monitor-card.tsx 'app/(tabs)/index.tsx' 'app/(tabs)/registro.tsx' 'app/(tabs)/_layout.tsx' app/_layout.tsx
+      - name: Lint authentication, navigation, and sensor UI
+        run: npx eslint app/login.tsx context/auth-context.tsx context/alerts-context.tsx components/schoolsafe/header.tsx components/schoolsafe/sensor-card.tsx components/schoolsafe/sensor-screen.tsx components/schoolsafe/monitor-card.tsx components/schoolsafe/dock.tsx components/haptic-tab.tsx 'app/(tabs)/index.tsx' 'app/(tabs)/registro.tsx' 'app/(tabs)/_layout.tsx' app/_layout.tsx
       - name: Authentication server syntax
         run: node --check server/index.mjs
       - name: Validate JSON configuration
-        run: node -e "JSON.parse(require('fs').readFileSync('app.json','utf8')); JSON.parse(require('fs').readFileSync('package.json','utf8')); JSON.parse(require('fs').readFileSync('server/package.json','utf8'))"
+        run: node -e "JSON.parse(require('fs').readFileSync('app.json','utf8')); JSON.parse(require('fs').readFileSync('eas.json','utf8')); JSON.parse(require('fs').readFileSync('package.json','utf8')); JSON.parse(require('fs').readFileSync('server/package.json','utf8'))"
