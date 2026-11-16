@@ -51,9 +51,9 @@ A pasta server/ e render.yaml contêm o antigo serviço independente baseado em 
 
 ## Ambiente de desenvolvimento
 
-O projeto utiliza Expo SDK 58, React Native 0.88.1, React 19.3 e requer Node.js 22.13 ou superior. Após atualizar a branch ou instalar dependências, execute `npm install`, `npx expo install --fix` e `npx expo-doctor` para conferir se o ambiente está alinhado ao SDK.
+O projeto utiliza Expo SDK 58, React Native 0.88.1, React 19.3, Reanimated 4.7.1 e Worklets 0.13.0. O Expo SDK 58 requer Node.js 22.13 ou superior. Após atualizar a branch, instale as dependências com `npm ci` e execute `npx expo-doctor` para conferir o ambiente.
 
-Para reiniciar o Metro limpando o cache, execute `npx expo start --clear`.
+Para reiniciar o Metro limpando o cache, execute `npx expo start --clear`. Como a migração atualiza bibliotecas nativas, gere e instale um novo APK ou development build; um APK antigo continua contendo as versões nativas anteriores.
 
 ## Gerar o aplicativo Android
 
