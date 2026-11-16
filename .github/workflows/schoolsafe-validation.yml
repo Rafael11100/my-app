@@ -33,7 +33,6 @@ jobs:
         run: |
           npm install
           npx expo install --fix
-          npx expo-doctor@latest
       - name: Persist aligned SDK dependency lockfile
         if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
         run: |
@@ -44,6 +43,8 @@ jobs:
             git commit -m "chore: align Expo SDK 58 dependency lockfile"
             git push origin "HEAD:${GITHUB_HEAD_REF}"
           fi
+      - name: Expo Doctor
+        run: npx expo-doctor@latest
       - name: TypeScript check
         run: npx tsc --noEmit
       - name: Lint changed authentication and branding screens
