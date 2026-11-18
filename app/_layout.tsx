@@ -65,8 +65,10 @@ function RootStack() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
-  if (!fontsLoaded) return null;
+  // Carrega as fontes personalizadas em segundo plano; a interface não deve
+  // ficar presa em uma tela vazia caso o navegador não consiga carregá-las.
+  useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
+
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#1f1f1f' }}>
       <SchoolThemeProvider>
