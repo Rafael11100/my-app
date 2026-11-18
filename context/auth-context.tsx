@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const STORAGE_KEY = '@seguranca-escolar/jazzsecurity-session.v1';
-const JAZZSECURITY_URL = (process.env.EXPO_PUBLIC_JAZZSECURITY_URL ?? '').trim().replace(/\/+$/, '');
+const JAZZSECURITY_URL = (process.env.EXPO_PUBLIC_JAZZSECURITY_URL ?? 'https://jazz-security.vercel.app').trim().replace(/\/+$/, '');
 const AUTH_TIMEOUT_MS = 12_000;
 
 export type Session = {
