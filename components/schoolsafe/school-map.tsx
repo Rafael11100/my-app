@@ -1,16 +1,47 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React, { useCallback, useRef } from 'react';
 import { Dimensions, Pressable, StyleSheet, Text, View, useWindowDimensions, type PressableInstance } from 'react-native';
 import Svg, { Rect, Text as SvgText } from 'react-native-svg';
 import { AREAS, type AreaId } from '@/constants/areas';
 import { useSensorSheet, type SensorOriginRect } from '@/components/schoolsafe/sensor-sheet';
 import { MapSensorChip } from '@/components/schoolsafe/map-sensor-chip';
-import type { Sensor } from '@/context/alerts-context';
+import type { Sensor, SensorKind, SensorStatus } from '@/context/alerts-context';
 
 type Props = { sensors: Sensor[]; focused?: boolean };
+type SensorGroup = { kind: SensorKind; sensors: Sensor[] };
 const MAP_VIEW = { x: 60, y: 22, width: 324, height: 382 };
+const SENSOR_KINDS: SensorKind[] = ['smoke', 'motion'];
+
+function groupByKind(sensors: Sensor[]): SensorGroup[] {
+  return SENSOR_KINDS.flatMap((kind) => {
+    const members = sensors.filter((sensor) => sensor.kind === kind);
+    return members.length > 0 ? [{ kind, sensors: members }] : [];
+  });
+}
+
+/** Produz o estado agregado do marcador sem alterar os sensores originais da tela de sensores. */
+function getGroupMarkerSensor(group: SensorGroup): Sensor {
+  const activeSensor = group.sensors.find((sensor) => sensor.active);
+  const allOffline = group.sensors.every((sensor) => sensor.status === 'offline');
+  const hasStaleSensor = group.sensors.some((sensor) => sensor.status === 'stale');
+  const status: SensorStatus = activeSensor
+    ? 'alert'
+    : allOffline
+      ? 'offline'
+      : hasStaleSensor
+        ? 'stale'
+        : 'normal';
+
+  return {
+    ...(activeSensor ?? group.sensors[0]),
+    active: Boolean(activeSensor),
+    status,
+  };
+}
 
 export default function SchoolMap({ sensors, focused = true }: Props) {
+  const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const { openSensor } = useSensorSheet();
   const targets = useRef<Record<string, PressableInstance | null>>({});
@@ -21,13 +52,24 @@ export default function SchoolMap({ sensors, focused = true }: Props) {
   const unregistered = sensors.filter((sensor) => sensor.areaId === null);
   const areaIds = Object.keys(AREAS) as AreaId[];
 
-  const showSensor = useCallback((sensor: Sensor) => {
-    const target = targets.current[sensor.id];
+  const showSensor = useCallback((sensor: Sensor, targetKey = sensor.id) => {
+    const target = targets.current[targetKey];
     const screen = Dimensions.get('window');
     const fallback: SensorOriginRect = { x: screen.width / 2 - 20, y: screen.height / 2 - 20, width: 40, height: 40 };
     if (!target) { openSensor(sensor.id, fallback); return; }
     target.measureInWindow((x, y, width, height) => openSensor(sensor.id, { x, y, width, height }));
   }, [openSensor]);
+
+  const openSensorGroup = useCallback((group: SensorGroup) => {
+    // Grupos com mais de um dispositivo abrem a tela do tipo, que mantém
+    // cada sensor em seu próprio cartão, sem mostrar contagem no mapa.
+    if (group.sensors.length > 1) {
+      router.push(group.kind === 'smoke' ? '/smoke' : '/motion');
+      return;
+    }
+    const sensor = group.sensors[0];
+    showSensor(sensor, `${sensor.areaId}:${group.kind}`);
+  }, [router, showSensor]);
 
   return <View style={styles.wrapper}>
     <View style={styles.mapHeading}>
@@ -56,14 +98,26 @@ export default function SchoolMap({ sensors, focused = true }: Props) {
           const area = AREAS[id];
           const areaSensors = registered.filter((sensor) => sensor.areaId === id);
           if (areaSensors.length === 0) return null;
+          const groups = groupByKind(areaSensors);
           const vertical = area.h > area.w;
+          const chipSize = groups.length > 1
+            ? (vertical ? { width: 40, height: 28 } : { width: 28, height: 40 })
+            : { width: 40, height: 40 };
+
           return <View key={id} pointerEvents="box-none" style={[styles.areaSensors, { left: (area.x - MAP_VIEW.x) * scale, top: (area.y - MAP_VIEW.y) * scale, width: area.w * scale, height: area.h * scale }]}>
             <View style={[styles.chips, { flexDirection: vertical ? 'column' : 'row' }]}>
-              {areaSensors.slice(0, 2).map((sensor) => {
-                const chipSize = areaSensors.length > 1 ? (vertical ? { width: 40, height: 28 } : { width: 28, height: 40 }) : { width: 40, height: 40 };
-                return <MapSensorChip key={sensor.id} sensor={sensor} size={chipSize} focused={focused} onPress={() => showSensor(sensor)} onRef={(node) => { targets.current[sensor.id] = node; }} />;
+              {groups.map((group) => {
+                const markerSensor = getGroupMarkerSensor(group);
+                const targetKey = `${id}:${group.kind}`;
+                return <MapSensorChip
+                  key={targetKey}
+                  sensor={markerSensor}
+                  size={chipSize}
+                  focused={focused}
+                  onPress={() => openSensorGroup(group)}
+                  onRef={(node) => { targets.current[targetKey] = node; }}
+                />;
               })}
-              {areaSensors.length > 2 && <Text style={styles.more}>+{areaSensors.length - 2}</Text>}
             </View>
           </View>;
         })}
@@ -90,7 +144,6 @@ const styles = StyleSheet.create({
   map: { position: 'relative', alignSelf: 'center' },
   areaSensors: { position: 'absolute', alignItems: 'center', justifyContent: 'center', overflow: 'visible' },
   chips: { alignItems: 'center', justifyContent: 'center', gap: 2, overflow: 'visible' },
-  more: { color: '#a0a0a0', fontSize: 9, backgroundColor: '#292929', paddingHorizontal: 3, borderRadius: 6 },
   unregistered: { width: '100%', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.08)', paddingTop: 12, gap: 8 },
   unregisteredChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   unregisteredChip: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderStyle: 'dashed', borderColor: '#6b6b6b', borderRadius: 10, paddingHorizontal: 10, paddingVertical: 8, backgroundColor: 'rgba(107,107,107,0.10)' },
